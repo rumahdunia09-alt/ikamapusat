@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KASIR PRO - ADMIN ONLY</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #2c3e50; color: white; padding: 20px; }
+        .card { max-width: 500px; background: #34495e; padding: 20px; border-radius: 10px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        h2 { text-align: center; color: #1abc9c; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #1abc9c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #16a085; }
+        .list { margin-top: 20px; background: white; color: #333; border-radius: 5px; padding: 10px; }
+        .item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 8px 0; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>KASIR PRO (ADMIN)</h2>
+    <p style="text-align: center; font-size: 12px;">Mode: Akses Penuh Tanpa Batas</p>
+    
+    <input type="text" id="nama" placeholder="Nama Barang">
+    <input type="number" id="harga" placeholder="Harga">
+    <button onclick="tambah()">Simpan ke Database</button>
+
+    <div class="list" id="list">Memuat stok...</div>
+</div>
+
+<script>
+    // MASUKKAN CONFIG FIREBASE ANDA DI SINI
+    const firebaseConfig = {
+        apiKey: "AIzaSy...",
+        authDomain: "warung-anda.firebaseapp.com",
+        databaseURL: "https://warung-anda-default-rtdb.firebaseio.com",
+        projectId: "warung-anda",
+        storageBucket: "warung-anda.appspot.com",
+        messagingSenderId: "123456789",
+        appId: "1:123456789:web:abcdef..."
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function tambah() {
+        const n = document.getElementById('nama').value;
+        const h = document.getElementById('harga').value;
+        if(n && h) {
+            // Langsung simpan tanpa cek BATAS_TRIAL
+            db.ref('stok_barang').push({ nama: n, harga: h });
+            document.getElementById('nama').value = "";
+            document.getElementById('harga').value = "";
+            alert("Berhasil!");
+        }
+    }
+
+    db.ref('stok_barang').on('value', (snap) => {
+        let html = "";
+        snap.forEach((child) => {
+            html += `<div class="item"><span>${child.val().nama}</span><span>Rp ${child.val().harga}</span></div>`;
+        });
+        document.getElementById('list').innerHTML = html || "Kosong";
+    });
+</script>
+</body>
+</html>
