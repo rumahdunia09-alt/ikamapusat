@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMALA - Cloud Pro</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        :root { --p: #007bff; --s: #28a745; --d: #dc3545; --g: #6c757d; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Navbar dengan Logo */
+        .navbar { background: #fff; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .nav-brand { display: flex; align-items: center; gap: 10px; }
+        .logo-img { height: 40px; width: auto; object-fit: contain; }
+
+        .container { padding: 20px; max-width: 1200px; margin: auto; flex: 1; width: 100%; box-sizing: border-box; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .stat-box { padding: 20px; border-radius: 10px; color: white; text-align: center; }
+        input, button, select { padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
+        button { cursor: pointer; background: var(--p); color: white; border: none; font-weight: bold; }
+        .btn-s { background: var(--s); } .btn-d { background: var(--d); } .btn-g { background: var(--g); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background: #fafafa; }
+        .footer-license { text-align: center; padding: 20px; font-size: 12px; color: #7f8c8d; border-top: 1px solid #eee; background: #fff; margin-top: 20px; }
+        .qty-input { width: 60px !important; padding: 5px !important; text-align: center; }
+        
+        /* Style Logo di Login */
+        .login-logo { display: block; margin: 0 auto 15px; height: 80px; width: auto; }
+    </style>
+</head>
+<body>
+
+    <div id="loginPage" style="max-width: 400px; margin: 80px auto;" class="card">
+        <img src="logo.png" alt="Logo" class="login-logo" onerror="this.style.display='none'">
+        <h2 style="text-align:center; margin-top: 0;">IMALA LOGIN</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="doLogin()">MASUK</button>
+        <p style="text-align: center; font-size: 10px; color: #999; margin-top: 15px;">By: DUNIATANPASPASI-2026</p>
+    </div>
+
+    <div id="appContainer" style="display:none;">
+        <div class="navbar">
+            <div class="nav-brand">
+                <img src="logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none'">
+                <h3 style="margin:0">IMALA CLOUD</h3>
+            </div>
+            <div>
+                <span id="displayUser" style="margin-right:15px; font-weight:bold"></span>
+                <button class="btn-d" style="width:auto; padding:8px 15px" onclick="location.reload()">Keluar</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <div id="dashboardSection" class="grid" style="display:none">
+                <div class="stat-box" style="background: var(--p);">
+                    <small>Omzet Hari Ini</small>
+                    <h2 id="omzetHariIni">Rp 0</h2>
+                </div>
+                <div class="stat-box" style="background: var(--s);">
+                    <small>Profit Hari Ini</small>
+                    <h2 id="profitHariIni">Rp 0</h2>
+                </div>
+                <div class="stat-box" style="background: var(--g);">
+                    <small>Total Transaksi</small>
+                    <h2 id="trxHariIni">0</h2>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h3>Kasir</h3>
+                    <input type="text" id="scanKasir" placeholder="Cari Nama / Scan Barcode..." onkeypress="handleKasirScan(event)">
+                    <table>
+                        <thead><tr><th>Produk</th><th style="width:80px">Qty</th><th>Subtotal</th></tr></thead>
+                        <tbody id="bodyKeranjang"></tbody>
+                    </table>
+                    <hr>
+                    <h2 id="totalBelanja" style="text-align:right; color:var(--s); margin:10px 0;">Total: Rp 0</h2>
+                    <input type="number" id="bayar" placeholder="Jumlah Bayar (Rp)" oninput="hitungKembalian()">
+                    <h3 id="kembalian" style="text-align:right; color:var(--d);">Kembali: Rp 0</h3>
+                    <button class="btn-s" onclick="prosesTransaksi()">BAYAR & SIMPAN</button>
+                </div>
+
+                <div class="card">
+                    <h3>Laporan Penjualan</h3>
+                    <div style="display:flex; gap:5px;">
+                        <input type="date" id="filterTanggal">
+                        <button class="btn-g" style="width:auto" onclick="renderRiwayat()">Cari</button>
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table>
+                            <thead><tr><th>Waktu</th><th>Total</th><th>Aksi</th></tr></thead>
+                            <tbody id="bodyRiwayat"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="adminPanel" class="card" style="display:none">
+                <h3>Master Barang (Stok & Modal)</h3>
+                <div class="grid">
+                    <div>
+                        <input type="text" id="m_kode" placeholder="Barcode/Kode">
+                        <input type="text" id="m_nama" placeholder="Nama Barang">
+                        <input type="number" id="m_modal" placeholder="Harga Modal (Beli)">
+                        <input type="number" id="m_harga" placeholder="Harga Jual">
+                        <input type="number" id="m_stok" placeholder="Jumlah Stok">
+                        <button class="btn-s" onclick="tambahBarang()">SIMPAN BARANG</button>
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table>
+                            <thead><tr><th>Nama</th><th>Modal</th><th>Jual</th><th>Stok</th><th>X</th></tr></thead>
+                            <tbody id="bodyMaster"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-license">
+            <strong>IMALA CLOUD SYSTEM</strong><br>
+            By: DUNIATANPASPASI-2026 | Telp. 0852-1522-0987
+        </div>
+    </div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAvJdH3fnfUvupwtRDbSvhBjiY3tIxXnW0",
+        authDomain: "kasir-imala.firebaseapp.com",
+        databaseURL: "https://kasir-imala-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "kasir-imala",
+        storageBucket: "kasir-imala.firebasestorage.app",
+        messagingSenderId: "375649394523",
+        appId: "1:375649394523:web:1e13212c1f9c1d8829447e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const dbCloud = firebase.database();
+
+    let dbBarang = [], dbUsers = [], dbRiwayat = [], keranjang = [], currentUser = null;
+
+    document.getElementById('filterTanggal').valueAsDate = new Date();
+
+    dbCloud.ref('v9_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); updateDashboard(); });
+    dbCloud.ref('v9_users').on('value', snap => { dbUsers = snap.val() || [{nama:'Admin', user:'admin', pass:'123', role:'admin'}]; });
+    dbCloud.ref('v9_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; renderRiwayat(); updateDashboard(); });
+
+    function doLogin() {
+        const u = document.getElementById('username').value, p = document.getElementById('password').value;
+        const akun = dbUsers.find(x => x.user === u && x.pass === p);
+        if(akun) {
+            currentUser = akun;
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('displayUser').innerText = akun.nama;
+            if(akun.role === 'admin') { document.getElementById('adminPanel').style.display = 'block'; document.getElementById('dashboardSection').style.display = 'grid'; }
+        } else { alert("Login Gagal!"); }
+    }
+
+    function updateDashboard() {
+        const tglHariIni = new Date().toLocaleDateString('id-ID');
+        let omzet = 0, profit = 0, trxCount = 0;
+        dbRiwayat.forEach(r => {
+            if(r.waktu.includes(tglHariIni)) {
+                omzet += r.total;
+                profit += (r.profit || 0);
+                trxCount++;
+            }
+        });
+        document.getElementById('omzetHariIni').innerText = "Rp " + omzet.toLocaleString();
+        document.getElementById('profitHariIni').innerText = "Rp " + profit.toLocaleString();
+        document.getElementById('trxHariIni').innerText = trxCount;
+    }
+
+    function handleKasirScan(e) {
+        if(e.key === 'Enter') {
+            const val = document.getElementById('scanKasir').value;
+            const b = dbBarang.find(x => x.kode === val || x.nama.toLowerCase().includes(val.toLowerCase()));
+            if(b && b.stok > 0) {
+                const ada = keranjang.find(k => k.kode === b.kode);
+                if(ada) { if(ada.qty < b.stok) ada.qty++; }
+                else { keranjang.push({...b, qty: 1}); }
+                renderKeranjang();
+            }
+            document.getElementById('scanKasir').value = '';
+        }
+    }
+
+    function changeQty(index, newQty) {
+        const n = parseInt(newQty);
+        const item = keranjang[index];
+        const ori = dbBarang.find(b => b.kode === item.kode);
+        if(n > ori.stok) { alert("Stok tidak cukup!"); item.qty = ori.stok; }
+        else if(n <= 0) { keranjang.splice(index, 1); }
+        else { item.qty = n; }
+        renderKeranjang();
+    }
+
+    function renderKeranjang() {
+        const b = document.getElementById('bodyKeranjang'); b.innerHTML = '';
+        let total = 0;
+        keranjang.forEach((k, i) => {
+            let sub = k.qty * k.harga; total += sub;
+            b.innerHTML += `<tr>
+                <td>${k.nama}</td>
+                <td><input type="number" class="qty-input" value="${k.qty}" onchange="changeQty(${i}, this.value)"></td>
+                <td>Rp ${sub.toLocaleString()}</td>
+            </tr>`;
+        });
+        document.getElementById('totalBelanja').innerText = "Total: Rp " + total.toLocaleString();
+        hitungKembalian();
+    }
+
+    function hitungKembalian() {
+        const total = parseInt(document.getElementById('totalBelanja').innerText.replace(/\D/g,'')) || 0;
+        const bayar = parseInt(document.getElementById('bayar').value) || 0;
+        const kembali = bayar - total;
+        document.getElementById('kembalian').innerText = "Kembali: Rp " + (kembali < 0 ? 0 : kembali).toLocaleString();
+    }
+
+    function prosesTransaksi() {
+        if(keranjang.length === 0) return;
+        const bayar = parseInt(document.getElementById('bayar').value) || 0;
+        const total = parseInt(document.getElementById('totalBelanja').innerText.replace(/\D/g,''));
+        if(bayar < total) return alert("Pembayaran kurang!");
+
+        let profitTrx = 0;
+        keranjang.forEach(item => {
+            profitTrx += (item.qty * (item.harga - item.modal));
+            const idx = dbBarang.findIndex(b => b.kode === item.kode);
+            if(idx !== -1) dbBarang[idx].stok -= item.qty;
+        });
+
+        const trx = {
+            id: Date.now(),
+            waktu: new Date().toLocaleString('id-ID'),
+            tanggal: new Date().toISOString().split('T')[0],
+            total: total,
+            profit: profitTrx,
+            kasir: currentUser.nama,
+            items: [...keranjang]
+        };
+
+        dbRiwayat.unshift(trx);
+        dbCloud.ref('v9_barang').set(dbBarang);
+        dbCloud.ref('v9_riwayat').set(dbRiwayat);
+        
+        alert("Transaksi Berhasil!");
+        keranjang = []; document.getElementById('bayar').value = '';
+        renderKeranjang();
+    }
+
+    function renderRiwayat() {
+        const filter = document.getElementById('filterTanggal').value;
+        const b = document.getElementById('bodyRiwayat'); b.innerHTML = '';
+        dbRiwayat.filter(r => r.tanggal === filter).forEach(r => {
+            b.innerHTML += `<tr>
+                <td>${r.waktu.split(' ')[1]}</td>
+                <td>Rp ${r.total.toLocaleString()}</td>
+                <td><button class="btn-g" style="padding:5px;width:auto" onclick="cetakManual(${r.id})">Cetak</button></td>
+            </tr>`;
+        });
+    }
+
+    function cetakManual(id) {
+        const trx = dbRiwayat.find(r => r.id === id);
+        let s = `<style>body{font-family:monospace;width:200px;font-size:12px}.c{text-align:center}</style>
+                 <div class="c"><strong>IMALA</strong><br>${trx.waktu}<br>---</div>`;
+        trx.items.forEach(it => { s += `<div>${it.nama} x${it.qty}<br>Rp ${(it.qty*it.harga).toLocaleString()}</div>`; });
+        s += `<br><strong>TOTAL: Rp ${trx.total.toLocaleString()}</strong><br><div class="c">By: Duniatanpaspasi</div>`;
+        const w = window.open('', '_blank', 'width=300,height=400');
+        w.document.write(s); w.print(); w.close();
+    }
+
+    function tambahBarang() {
+        const k = document.getElementById('m_kode').value, n = document.getElementById('m_nama').value;
+        const m = document.getElementById('m_modal').value, h = document.getElementById('m_harga').value;
+        const s = document.getElementById('m_stok').value;
+        if(!k || !n || !m || !h) return alert("Lengkapi data!");
+        dbBarang.push({kode:k, nama:n, modal:parseInt(m), harga:parseInt(h), stok:parseInt(s)});
+        dbCloud.ref('v9_barang').set(dbBarang);
+        alert("Barang Disimpan!");
+    }
+
+    function renderMaster() {
+        const b = document.getElementById('bodyMaster'); b.innerHTML = '';
+        dbBarang.forEach((brg, i) => {
+            b.innerHTML += `<tr>
+                <td>${brg.nama}</td>
+                <td>${brg.modal.toLocaleString()}</td>
+                <td>${brg.harga.toLocaleString()}</td>
+                <td style="${brg.stok <= 5 ? 'color:red;font-weight:bold':''}">${brg.stok}</td>
+                <td><button class="btn-d" style="padding:2px;width:auto" onclick="hapusBarang(${i})">X</button></td>
+            </tr>`;
+        });
+    }
+
+    function hapusBarang(i) { if(confirm("Hapus?")) { dbBarang.splice(i,1); dbCloud.ref('v9_barang').set(dbBarang); } }
+</script>
+</body>
+</html>
+
