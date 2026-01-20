@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Kasir v8.0 - Hak Akses Terpisah</title>
+    <title id="tabTitle">Sistem Kasir Multi-Warung</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { 
@@ -21,7 +21,7 @@
         /* LAYOUT & SIDEBAR */
         #appContainer { display: none; min-height: 100vh; }
         .sidebar { width: 240px; height: 100vh; background: var(--primary); position: fixed; color: white; display: flex; flex-direction: column; }
-        .sidebar h2 { text-align: center; padding: 20px; border-bottom: 1px solid #34495e; margin: 0; font-size: 1.1rem; }
+        .sidebar h2 { text-align: center; padding: 20px; border-bottom: 1px solid #34495e; margin: 0; font-size: 1.1rem; color: var(--success); }
         .nav-link { padding: 15px 25px; display: block; color: #bdc3c7; text-decoration: none; cursor: pointer; border-left: 5px solid transparent; transition: 0.3s; }
         .nav-link:hover, .nav-link.active { background: #34495e; color: white; border-left-color: var(--success); }
         .logout-btn { background: var(--danger); margin-top: auto; }
@@ -41,60 +41,57 @@
         .excel-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: white; }
         .excel-table th { background: #e6e6e6; border: 1px solid var(--excel-border); padding: 10px; text-align: left; }
         .excel-table td { border: 1px solid #e0e0e0; padding: 8px 10px; }
-        .text-right { text-align: right; } .text-center { text-align: center; }
-
-        /* ACTION ICONS */
-        .action-icon { cursor: pointer; font-size: 1.1rem; margin: 0 5px; }
-        .edit-icon { color: var(--warning); } .delete-icon { color: var(--danger); }
 
         /* KASIR STYLES */
         .kasir-grid { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
         .display-total { background: #2c3e50; color: #27ae60; padding: 20px; border-radius: 10px; text-align: right; }
         .display-total span { font-size: 2.2rem; font-weight: bold; font-family: monospace; }
-        .summary-mini { background: #e8f4fd; padding: 10px 15px; border-radius: 8px; color: #2980b9; font-weight: bold; margin-bottom: 15px; }
 
-        @media print { body * { visibility: hidden; } #areaStruk, #areaStruk * { visibility: visible; } }
+        /* STRUK PRINT STYLES */
+        #areaStruk { display: none; font-family: 'Courier New', Courier, monospace; width: 300px; padding: 10px; }
+        .struk-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .struk-item { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 3px; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #areaStruk, #areaStruk * { visibility: visible; display: block !important; }
+            #areaStruk { position: absolute; left: 0; top: 0; width: 300px; }
+        }
     </style>
 </head>
 <body>
 
 <div id="loginPage">
     <div class="login-card">
-        <i class="fas fa-lock fa-3x" style="color: var(--primary); margin-bottom: 15px;"></i>
-        <h2>PILIH LOGIN</h2>
+        <i class="fas fa-store fa-3x" style="color: var(--primary); margin-bottom: 15px;"></i>
+        <h2 id="loginTitle">SISTEM KASIR</h2>
+        <hr>
         <input type="text" id="username" placeholder="Username (admin/kasir)">
-        <input type="password" id="password" placeholder="Password (123/456)">
-        <button class="btn btn-success" style="width: 100%" onclick="doLogin()">LOG IN</button>
+        <input type="password" id="password" placeholder="Password">
+        <button class="btn btn-success" style="width: 100%" onclick="doLogin()">LOGIN</button>
     </div>
 </div>
 
 <div id="appContainer">
     <div class="sidebar">
-        <h2 id="displayUser">USER</h2>
-        
+        <h2 id="displayUser">ID_WARUNG</h2>
         <div id="menuAdminOnly">
             <div class="nav-link" onclick="showPage('dashboard')"><i class="fas fa-chart-pie"></i> Dashboard</div>
             <div class="nav-link" onclick="showPage('masterBarang')"><i class="fas fa-database"></i> Master Barang</div>
         </div>
-
         <div class="nav-link active" onclick="showPage('transaksi')"><i class="fas fa-shopping-cart"></i> Kasir</div>
-        
         <div id="menuLaporanOnly">
-            <div class="nav-link" onclick="showPage('laporan')"><i class="fas fa-file-invoice-dollar"></i> Laporan Keuangan</div>
+            <div class="nav-link" onclick="showPage('laporan')"><i class="fas fa-file-invoice-dollar"></i> Laporan</div>
         </div>
-
         <div class="nav-link logout-btn" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Keluar</div>
     </div>
 
     <div class="main-content">
         <div id="transaksi" class="page active">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h1>Halaman Kasir</h1>
-                <div class="summary-mini">Pendapatan Hari Ini: <span id="kasirHariIni">Rp 0</span></div>
-            </div>
+            <h1>Halaman Kasir - <span id="labelWarung"></span></h1>
             <div class="kasir-grid">
                 <div class="card">
-                    <input type="text" id="scanKasir" onkeypress="handleKasirScan(event)" placeholder="Scan Barcode / Cari Nama Barang...">
+                    <input type="text" id="scanKasir" onkeypress="handleKasirScan(event)" placeholder="Scan Barcode / Nama Barang...">
                     <div class="excel-container">
                         <table class="excel-table">
                             <thead><tr><th>Produk</th><th>Harga</th><th>Qty</th><th>Subtotal</th><th>Aksi</th></tr></thead>
@@ -104,62 +101,49 @@
                 </div>
                 <div class="card">
                     <div class="display-total"><small>TOTAL BELANJA</small><br><span id="displayTotal">Rp 0</span></div>
-                    <label style="margin-top:15px; display:block">Metode Pembayaran</label>
-                    <select id="metodeBayar" onchange="toggleMetode()">
-                        <option value="Cash">Tunai (Cash)</option>
-                        <option value="Transfer">Transfer</option>
-                    </select>
-                    <label>Nominal Bayar</label>
-                    <input type="number" id="uangBayar" oninput="hitungKembalian()" placeholder="0">
+                    <label style="margin-top:15px; display:block">Pembayaran</label>
+                    <select id="metodeBayar"><option value="Cash">Tunai</option><option value="Transfer">Transfer</option></select>
+                    <input type="number" id="uangBayar" oninput="hitungKembalian()" placeholder="Uang Bayar">
                     <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; text-align: center;">
                         <small>Kembalian</small><br><strong id="textKembali" style="font-size: 1.8rem; color: var(--danger);">Rp 0</strong>
                     </div>
-                    <button class="btn btn-success" style="width: 100%; margin-top: 15px; height: 55px; font-size: 1.1rem;" onclick="prosesTransaksi()">PROSES TRANSAKSI</button>
+                    <button class="btn btn-success" style="width: 100%; margin-top: 15px;" onclick="prosesTransaksi()">PROSES & CETAK</button>
                 </div>
             </div>
         </div>
 
         <div id="masterBarang" class="page">
-            <h1>Master Barang (Stok & Harga)</h1>
+            <h1>Manajemen Stok</h1>
             <div style="display: grid; grid-template-columns: 320px 1fr; gap: 20px;">
                 <div class="card">
-                    <h3 id="masterTitle">Form Barang</h3>
                     <input type="hidden" id="masterEditIdx" value="-1">
                     <input type="text" id="mKode" placeholder="Barcode">
                     <input type="text" id="mNama" placeholder="Nama Barang">
                     <input type="number" id="mModal" placeholder="Harga Modal">
                     <input type="number" id="mJual" placeholder="Harga Jual">
                     <input type="number" id="mStok" placeholder="Stok">
-                    <button id="btnSimpanMaster" class="btn btn-success" style="width: 100%" onclick="simpanMaster()">SIMPAN</button>
+                    <button class="btn btn-success" style="width: 100%" onclick="simpanMaster()">SIMPAN BARANG</button>
                 </div>
                 <div class="card">
-                    <input type="text" id="cariMaster" onkeyup="renderMasterTable()" placeholder="Cari barang...">
-                    <div class="excel-container">
-                        <table class="excel-table">
-                            <thead><tr><th>Nama/Kode</th><th>Modal</th><th>Jual</th><th>Laba</th><th>Stok</th><th>Aksi</th></tr></thead>
-                            <tbody id="bodyMaster"></tbody>
-                        </table>
-                    </div>
+                    <table class="excel-table">
+                        <thead><tr><th>Barang</th><th>Modal</th><th>Jual</th><th>Stok</th><th>Aksi</th></tr></thead>
+                        <tbody id="bodyMaster"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
         <div id="dashboard" class="page">
-            <h1>Dashboard Analitik</h1>
+            <h1>Analitik Warung</h1>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;" id="dashStats"></div>
         </div>
 
         <div id="laporan" class="page">
-            <h1>Laporan Keuangan & Profit</h1>
-            <div class="card">
-                <div class="excel-container">
-                    <table class="excel-table">
-                        <thead><tr><th>Waktu</th><th>Metode</th><th>Omzet</th><th>Modal</th><th>Laba</th></tr></thead>
-                        <tbody id="bodyLaporan"></tbody>
-                        <tfoot id="footLaporan"></tfoot>
-                    </table>
-                </div>
-            </div>
+            <h1>Laporan Penjualan</h1>
+            <div class="card"><table class="excel-table">
+                <thead><tr><th>Waktu</th><th>Total</th><th>Laba</th></tr></thead>
+                <tbody id="bodyLaporan"></tbody>
+            </table></div>
         </div>
     </div>
 </div>
@@ -167,115 +151,61 @@
 <div id="areaStruk"></div>
 
 <script>
-    let dbBarang = JSON.parse(localStorage.getItem('v8_barang')) || [];
-    let dbRiwayat = JSON.parse(localStorage.getItem('v8_riwayat')) || [];
-    let currentUser = "";
+    const urlParams = new URLSearchParams(window.location.search);
+    const ID_WARUNG = urlParams.get('toko') || 'PUSAT';
+    
+    // Setup Visual
+    document.getElementById('loginTitle').innerText = "KASIR: " + ID_WARUNG.replace('_', ' ');
+    document.getElementById('labelWarung').innerText = ID_WARUNG;
+    document.getElementById('displayUser').innerText = ID_WARUNG;
+
+    let dbBarang = JSON.parse(localStorage.getItem('db_barang_' + ID_WARUNG)) || [];
+    let dbRiwayat = JSON.parse(localStorage.getItem('db_riwayat_' + ID_WARUNG)) || [];
     let keranjang = [];
     let totalBelanja = 0;
 
-    // SISTEM LOGIN TERPISAH
     function doLogin() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
-
-        if (u === 'admin' && p === '123') {
-            currentUser = 'admin';
-            document.getElementById('menuAdminOnly').style.display = 'block';
-            document.getElementById('menuLaporanOnly').style.display = 'block';
-            loginSuccess();
-        } else if (u === 'kasir' && p === '456') {
-            currentUser = 'kasir';
-            document.getElementById('menuAdminOnly').style.display = 'none';
-            document.getElementById('menuLaporanOnly').style.display = 'none';
-            loginSuccess();
-            showPage('transaksi');
-        } else {
-            alert("Username atau Password Salah!");
-        }
-    }
-
-    function loginSuccess() {
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'block';
-        document.getElementById('displayUser').innerText = currentUser.toUpperCase();
-        updatePendapatanKasir();
+        if ((u === 'admin' && p === '123') || (u === 'kasir' && p === '456')) {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('menuAdminOnly').style.display = (u === 'admin') ? 'block' : 'none';
+            document.getElementById('menuLaporanOnly').style.display = (u === 'admin') ? 'block' : 'none';
+        } else { alert("Akses Salah!"); }
     }
 
     function doLogout() { location.reload(); }
 
     function showPage(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         if (id === 'masterBarang') renderMasterTable();
         if (id === 'laporan') renderLaporan();
         if (id === 'dashboard') renderDashboard();
     }
 
-    // FUNGSI MASTER BARANG
+    // --- MASTER LOGIC ---
     function simpanMaster() {
-        const k = document.getElementById('mKode').value;
-        const n = document.getElementById('mNama').value;
-        const m = parseInt(document.getElementById('mModal').value);
-        const j = parseInt(document.getElementById('mJual').value);
-        const s = parseInt(document.getElementById('mStok').value);
-        const idx = document.getElementById('masterEditIdx').value;
-
-        if (!n || isNaN(m) || isNaN(j)) return alert("Data belum lengkap!");
-
-        const data = { kode: k, nama: n, modal: m, jual: j, laba: j - m, stok: s };
-
+        const k = document.getElementById('mKode').value, n = document.getElementById('mNama').value;
+        const m = parseInt(document.getElementById('mModal').value), j = parseInt(document.getElementById('mJual').value);
+        const s = parseInt(document.getElementById('mStok').value), idx = document.getElementById('masterEditIdx').value;
+        const data = { kode: k, nama: n, modal: m, jual: j, laba: j-m, stok: s };
         if (idx === "-1") dbBarang.unshift(data); else dbBarang[idx] = data;
-
-        localStorage.setItem('v8_barang', JSON.stringify(dbBarang));
-        resetFormMaster(); renderMasterTable();
+        localStorage.setItem('db_barang_' + ID_WARUNG, JSON.stringify(dbBarang));
+        ['mKode','mNama','mModal','mJual','mStok'].forEach(i => document.getElementById(i).value = '');
+        document.getElementById('masterEditIdx').value = "-1"; renderMasterTable();
     }
 
     function renderMasterTable() {
         const b = document.getElementById('bodyMaster'); b.innerHTML = '';
         dbBarang.forEach((x, i) => {
-            b.innerHTML += `<tr>
-                <td><b>${x.nama}</b><br><small>${x.kode}</small></td>
-                <td>${x.modal.toLocaleString()}</td>
-                <td>${x.jual.toLocaleString()}</td>
-                <td style="color:green"><b>${x.laba.toLocaleString()}</b></td>
-                <td>${x.stok}</td>
-                <td>
-                    <i class="fas fa-edit action-icon edit-icon" onclick="editMaster(${i})"></i>
-                    <i class="fas fa-trash action-icon delete-icon" onclick="hapusMaster(${i})"></i>
-                </td>
-            </tr>`;
+            b.innerHTML += `<tr><td>${x.nama}</td><td>${x.modal}</td><td>${x.jual}</td><td>${x.stok}</td>
+            <td><button onclick="document.getElementById('masterEditIdx').value='${i}'; document.getElementById('mNama').value='${x.nama}'">Edit</button></td></tr>`;
         });
     }
 
-    function editMaster(i) {
-        const x = dbBarang[i];
-        document.getElementById('mKode').value = x.kode;
-        document.getElementById('mNama').value = x.nama;
-        document.getElementById('mModal').value = x.modal;
-        document.getElementById('mJual').value = x.jual;
-        document.getElementById('mStok').value = x.stok;
-        document.getElementById('masterEditIdx').value = i;
-        document.getElementById('btnSimpanMaster').innerText = "UPDATE DATA";
-    }
-
-    function hapusMaster(i) {
-        if(confirm("Hapus barang?")) { dbBarang.splice(i,1); localStorage.setItem('v8_barang', JSON.stringify(dbBarang)); renderMasterTable(); }
-    }
-
-    function resetFormMaster() {
-        document.getElementById('masterEditIdx').value = "-1";
-        document.getElementById('btnSimpanMaster').innerText = "SIMPAN";
-        ['mKode','mNama','mModal','mJual','mStok'].forEach(id => document.getElementById(id).value = '');
-    }
-
-    // FUNGSI KASIR
-    function updatePendapatanKasir() {
-        const tgl = new Date().toLocaleDateString();
-        const total = dbRiwayat.filter(r => new Date(r.waktu).toLocaleDateString() === tgl).reduce((a,b) => a + b.total, 0);
-        document.getElementById('kasirHariIni').innerText = "Rp " + total.toLocaleString();
-    }
-
+    // --- KASIR LOGIC ---
     function handleKasirScan(e) {
         if (e.key === 'Enter') {
             const val = document.getElementById('scanKasir').value;
@@ -293,57 +223,59 @@
         const b = document.getElementById('keranjangTabel'); b.innerHTML = ''; totalBelanja = 0;
         keranjang.forEach((k, i) => {
             let sub = k.jual * k.qty; totalBelanja += sub;
-            b.innerHTML += `<tr><td>${k.nama}</td><td>${k.jual.toLocaleString()}</td><td>${k.qty}</td><td>${sub.toLocaleString()}</td><td onclick="keranjang.splice(${i},1);renderKeranjang()">❌</td></tr>`;
+            b.innerHTML += `<tr><td>${k.nama}</td><td>${k.jual}</td><td>${k.qty}</td><td>${sub}</td><td onclick="keranjang.splice(${i},1);renderKeranjang()">❌</td></tr>`;
         });
         document.getElementById('displayTotal').innerText = "Rp " + totalBelanja.toLocaleString();
-        toggleMetode();
-    }
-
-    function toggleMetode() {
-        if(document.getElementById('metodeBayar').value === 'Transfer') document.getElementById('uangBayar').value = totalBelanja;
-        hitungKembalian();
     }
 
     function hitungKembalian() {
-        const bayar = document.getElementById('uangBayar').value || 0;
+        const bayar = parseInt(document.getElementById('uangBayar').value) || 0;
         document.getElementById('textKembali').innerText = "Rp " + (bayar - totalBelanja).toLocaleString();
     }
 
     function prosesTransaksi() {
-        if(keranjang.length === 0) return alert("Keranjang Kosong!");
-        if(document.getElementById('uangBayar').value < totalBelanja) return alert("Uang Kurang!");
-
-        let tLaba = 0; let tModal = 0;
+        const bayar = parseInt(document.getElementById('uangBayar').value) || 0;
+        if(keranjang.length === 0 || bayar < totalBelanja) return alert("Periksa belanjaan/uang!");
+        
+        let tLaba = 0;
         keranjang.forEach(k => {
-            tModal += (k.modal * k.qty); tLaba += (k.laba * k.qty);
+            tLaba += (k.laba * k.qty);
             const idx = dbBarang.findIndex(x => x.kode === k.kode);
             if(idx !== -1) dbBarang[idx].stok -= k.qty;
         });
 
-        dbRiwayat.unshift({ waktu: new Date().toISOString(), metode: document.getElementById('metodeBayar').value, total: totalBelanja, modal: tModal, laba: tLaba });
-        localStorage.setItem('v8_barang', JSON.stringify(dbBarang));
-        localStorage.setItem('v8_riwayat', JSON.stringify(dbRiwayat));
+        const rec = { waktu: new Date().toISOString(), total: totalBelanja, laba: tLaba, items: [...keranjang], bayar: bayar };
+        dbRiwayat.unshift(rec);
+        localStorage.setItem('db_barang_' + ID_WARUNG, JSON.stringify(dbBarang));
+        localStorage.setItem('db_riwayat_' + ID_WARUNG, JSON.stringify(dbRiwayat));
         
-        alert("Sukses!"); keranjang = []; renderKeranjang(); updatePendapatanKasir();
+        cetak(rec);
+        keranjang = []; renderKeranjang(); 
+        document.getElementById('uangBayar').value = '';
     }
 
-    // FUNGSI LAPORAN
+    function cetak(rec) {
+        let items = '';
+        rec.items.forEach(i => { items += `<div class="struk-item"><span>${i.nama} x${i.qty}</span><span>${(i.jual*i.qty).toLocaleString()}</span></div>`; });
+        document.getElementById('areaStruk').innerHTML = `
+            <div class="struk-header"><h2>${ID_WARUNG}</h2><small>${new Date(rec.waktu).toLocaleString()}</small></div>
+            ${items}
+            <div class="struk-item" style="border-top:1px solid #000"><strong>TOTAL</strong><strong>${rec.total.toLocaleString()}</strong></div>
+            <div class="struk-item"><span>BAYAR</span><span>${rec.bayar.toLocaleString()}</span></div>
+            <div class="struk-footer"><p>Terima Kasih</p></div>`;
+        window.print();
+    }
+
     function renderLaporan() {
-        const b = document.getElementById('bodyLaporan'); const f = document.getElementById('footLaporan');
-        b.innerHTML = ''; let gJual = 0, gModal = 0, gLaba = 0;
-        dbRiwayat.forEach(r => {
-            gJual += r.total; gModal += r.modal; gLaba += r.laba;
-            b.innerHTML += `<tr><td>${new Date(r.waktu).toLocaleString()}</td><td>${r.metode}</td><td>${r.total.toLocaleString()}</td><td>${r.modal.toLocaleString()}</td><td style="color:green"><b>${r.laba.toLocaleString()}</b></td></tr>`;
-        });
-        f.innerHTML = `<tr><td colspan="2"><b>TOTAL</b></td><td><b>${gJual.toLocaleString()}</b></td><td><b>${gModal.toLocaleString()}</b></td><td style="color:green"><b>${gLaba.toLocaleString()}</b></td></tr>`;
+        const b = document.getElementById('bodyLaporan'); b.innerHTML = '';
+        dbRiwayat.forEach(r => { b.innerHTML += `<tr><td>${new Date(r.waktu).toLocaleTimeString()}</td><td>${r.total}</td><td>${r.laba}</td></tr>`; });
     }
 
     function renderDashboard() {
-        let j = 0, l = 0; dbRiwayat.forEach(r => { j += r.total; l += r.laba; });
+        let j = 0; dbRiwayat.forEach(r => j += r.total);
         document.getElementById('dashStats').innerHTML = `
-            <div class="card"><h3>Total Omzet</h3><h2>Rp ${j.toLocaleString()}</h2></div>
-            <div class="card"><h3>Total Laba</h3><h2 style="color:green">Rp ${l.toLocaleString()}</h2></div>
-            <div class="card"><h3>Total Barang</h3><h2>${dbBarang.length} Item</h2></div>
+            <div class="card"><h3>Omzet</h3><h2>Rp ${j.toLocaleString()}</h2></div>
+            <div class="card"><h3>Stok Item</h3><h2>${dbBarang.length}</h2></div>
         `;
     }
 </script>
