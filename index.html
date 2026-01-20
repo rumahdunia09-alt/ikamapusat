@@ -27,7 +27,7 @@
         .logo-login { width: 80px; height: 80px; margin-bottom: 20px; border-radius: 50%; }
 
         #appContainer { display: none; min-height: 100vh; }
-        .sidebar { width: 240px; height: 100vh; background: var(--primary); position: fixed; color: white; display: flex; flex-direction: column; }
+        .sidebar { width: 240px; height: 100vh; background: var(--primary); position: fixed; color: white; display: flex; flex-direction: column; overflow-y: auto; }
         .sidebar-header { text-align: center; padding: 20px; border-bottom: 1px solid #34495e; }
         .logo-sidebar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--success); }
         
@@ -40,18 +40,23 @@
         .page.active { display: block; }
 
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; width: 100%; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; width: 100%; margin-bottom: 5px; }
         .btn-success { background: var(--success); } 
         .btn-danger { background: var(--danger); }
+        .btn-info { background: var(--info); }
         
-        .excel-table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9rem; }
+        .excel-table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9rem; margin-top: 10px; }
         .excel-table th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 12px; text-align: left; }
         .excel-table td { border: 1px solid #dee2e6; padding: 10px; }
         .tfoot-bold { font-weight: bold; background: #eee; }
 
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .stat-card { padding: 20px; border-radius: 10px; color: white; text-align: center; }
+        
+        .badge { padding: 3px 8px; border-radius: 5px; font-size: 0.75rem; font-weight: bold; }
+        .badge-admin { background: #8e44ad; color: white; }
+        .badge-kasir { background: #2980b9; color: white; }
     </style>
 </head>
 <body>
@@ -63,7 +68,6 @@
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
         <button class="btn btn-success" onclick="doLogin()">MASUK</button>
-        <p style="font-size: 0.8rem; margin-top: 10px; color: #666;">Admin: admin (123) | Kasir: kasir1 (123)</p>
     </div>
 </div>
 
@@ -71,15 +75,17 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <img src="https://github.com/user-attachments/assets/70f581ca-4652-42b6-829a-8a7952f6249a" class="logo-sidebar">
-            <h4 id="displayUser">USER</h4>
-            <span id="userRoleBadge" style="font-size: 0.7rem; background: var(--success); padding: 2px 8px; border-radius: 10px;"></span>
+            <h4 id="displayUser" style="margin: 10px 0 5px 0;">USER</h4>
+            <span id="userRoleBadge" class="badge"></span>
         </div>
         
-        <div id="menuDashboard" class="nav-link" onclick="showPage('dashboard')"><i class="fas fa-home"></i> Dashboard</div>
+        <div id="navDashboard" class="nav-link" onclick="showPage('dashboard')"><i class="fas fa-home"></i> Dashboard</div>
         <div id="navKasir" class="nav-link active" onclick="showPage('transaksi')"><i class="fas fa-shopping-cart"></i> Kasir</div>
+        
         <div id="menuAdminOnly">
-            <div class="nav-link" onclick="showPage('masterBarang')"><i class="fas fa-box"></i> Stok Barang</div>
-            <div class="nav-link" onclick="showPage('laporan')"><i class="fas fa-file-alt"></i> Laporan</div>
+            <div class="nav-link" onclick="showPage('masterBarang')"><i class="fas fa-box"></i> Stok & Opname</div>
+            <div class="nav-link" onclick="showPage('laporan')"><i class="fas fa-file-alt"></i> Laporan Laba</div>
+            <div class="nav-link" onclick="showPage('pengaturanUser')"><i class="fas fa-users-cog"></i> Kelola User</div>
         </div>
         
         <div class="nav-link logout-btn" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> Keluar</div>
@@ -111,21 +117,29 @@
         </div>
 
         <div id="masterBarang" class="page">
-            <h2>Gudang Barang</h2>
+            <h2>Stok & Opname Barang</h2>
             <div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
                 <div class="card">
-                    <h3>Input Stok</h3>
-                    <input type="hidden" id="editIdx" value="-1">
+                    <h3>Tambah Barang Baru</h3>
                     <input type="text" id="mKode" placeholder="Barcode">
                     <input type="text" id="mNama" placeholder="Nama Barang">
                     <input type="number" id="mModal" placeholder="Harga Modal">
                     <input type="number" id="mJual" placeholder="Harga Jual">
-                    <input type="number" id="mStok" placeholder="Stok">
-                    <button class="btn btn-success" onclick="simpanBarang()">SIMPAN DATA</button>
+                    <input type="number" id="mStok" placeholder="Stok Awal">
+                    <button class="btn btn-success" onclick="simpanBarang()">SIMPAN BARANG</button>
                 </div>
                 <div class="card">
+                    <h3>Daftar Inventaris</h3>
                     <table class="excel-table">
-                        <thead><tr><th>Barcode</th><th>Nama</th><th>Stok</th><th>Harga Jual</th><th>Aksi</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Barcode</th>
+                                <th>Nama</th>
+                                <th>Stok Sistem</th>
+                                <th>Opname (Fisik)</th>
+                                <th>#</th>
+                            </tr>
+                        </thead>
                         <tbody id="tabelMaster"></tbody>
                     </table>
                 </div>
@@ -142,22 +156,44 @@
                 </table>
             </div>
         </div>
+
+        <div id="pengaturanUser" class="page">
+            <h2>Pengelolaan User & Sandi</h2>
+            <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px;">
+                <div class="card">
+                    <h3>Tambah User Baru</h3>
+                    <input type="text" id="uNama" placeholder="Nama Lengkap">
+                    <input type="text" id="uUser" placeholder="Username">
+                    <input type="password" id="uPass" placeholder="Password">
+                    <select id="uRole">
+                        <option value="kasir">Role: KASIR</option>
+                        <option value="admin">Role: ADMIN</option>
+                    </select>
+                    <button class="btn btn-info" onclick="tambahUser()">DAFTARKAN USER</button>
+                </div>
+                <div class="card">
+                    <h3>Daftar Pengguna Sistem</h3>
+                    <table class="excel-table">
+                        <thead><tr><th>Nama</th><th>Username</th><th>Role</th><th>Aksi</th></tr></thead>
+                        <tbody id="tabelUser"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- DATA INITIALIZATION ---
+    // --- DATABASE INITIALIZATION ---
     let dbBarang = JSON.parse(localStorage.getItem('v9_barang')) || [];
-    // Data dummy untuk pemisahan role
     let dbUsers = JSON.parse(localStorage.getItem('v9_users')) || [
-        {nama:'Owner Admin', user:'admin', pass:'123', role:'admin'},
-        {nama:'Kasir Toko', user:'kasir1', pass:'123', role:'kasir'}
+        {nama:'Owner Admin', user:'admin', pass:'123', role:'admin'}
     ];
     let dbRiwayat = JSON.parse(localStorage.getItem('v9_riwayat')) || [];
     let keranjang = [];
     let currentUser = null;
 
-    // --- LOGIN LOGIC ---
+    // --- LOGIN ---
     function doLogin() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
@@ -168,45 +204,41 @@
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
             document.getElementById('displayUser').innerText = akun.nama;
-            document.getElementById('userRoleBadge').innerText = akun.role.toUpperCase();
+            
+            const badge = document.getElementById('userRoleBadge');
+            badge.innerText = akun.role.toUpperCase();
+            badge.className = 'badge ' + (akun.role === 'admin' ? 'badge-admin' : 'badge-kasir');
 
-            // Proteksi Menu Berdasarkan Role
+            // Proteksi Menu
             const menuAdmin = document.getElementById('menuAdminOnly');
-            const menuDash = document.getElementById('menuDashboard');
+            const navDash = document.getElementById('navDashboard');
             
             if(akun.role === 'admin') {
                 menuAdmin.style.display = 'block';
-                menuDash.style.display = 'block';
+                navDash.style.display = 'block';
             } else {
                 menuAdmin.style.display = 'none';
-                menuDash.style.display = 'none';
-                showPage('transaksi'); // Kasir langsung ke halaman transaksi
+                navDash.style.display = 'none';
+                showPage('transaksi');
             }
-        } else { 
-            alert("Username atau Password Salah!"); 
-        }
+        } else { alert("User/Sandi Salah!"); }
     }
 
     function showPage(id) {
-        // Jangan izinkan kasir masuk ke halaman admin via console/shortcut
-        if(currentUser.role !== 'admin' && (id === 'masterBarang' || id === 'laporan' || id === 'dashboard')) {
-            alert("Akses Ditolak! Khusus Admin.");
-            return;
+        if(currentUser.role !== 'admin' && ['masterBarang','laporan','dashboard','pengaturanUser'].includes(id)) {
+            alert("Akses Terbatas!"); return;
         }
-
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        
         document.getElementById(id).classList.add('active');
-        // Set nav link active
-        if(id === 'transaksi') document.getElementById('navKasir').classList.add('active');
         
         if(id === 'masterBarang') renderMaster();
         if(id === 'dashboard') renderDashboard();
         if(id === 'laporan') renderLaporan();
+        if(id === 'pengaturanUser') renderUser();
     }
 
-    // --- KASIR LOGIC ---
+    // --- KASIR ---
     function handleKasirScan(e) {
         if(e.key === 'Enter') {
             const val = document.getElementById('scanKasir').value.trim();
@@ -216,13 +248,9 @@
                 const ada = keranjang.find(k => k.kode === b.kode);
                 if(ada) {
                     if(ada.qty < b.stok) ada.qty++; else alert("Stok limit!");
-                } else { 
-                    keranjang.push({...b, qty:1}); 
-                }
+                } else { keranjang.push({...b, qty:1}); }
                 renderKeranjang();
-            } else { 
-                alert("Barang tidak ditemukan!"); 
-            }
+            } else { alert("Barang tidak ditemukan!"); }
             document.getElementById('scanKasir').value = '';
         }
     }
@@ -233,7 +261,7 @@
         keranjang.forEach((k, i) => {
             let sub = k.jual * k.qty; total += sub;
             t.innerHTML += `<tr><td>${k.nama}</td><td>${k.jual.toLocaleString()}</td><td>${k.qty}</td><td>${sub.toLocaleString()}</td>
-            <td><button class="btn-danger" style="padding:5px 10px; border-radius:4px; border:none; cursor:pointer;" onclick="keranjang.splice(${i},1);renderKeranjang()">X</button></td></tr>`;
+            <td><button class="btn-danger" style="padding:5px" onclick="keranjang.splice(${i},1);renderKeranjang()">X</button></td></tr>`;
         });
         document.getElementById('totalText').innerText = "Total: Rp " + total.toLocaleString();
         document.getElementById('totalText').setAttribute('data-total', total);
@@ -249,8 +277,7 @@
     function prosesTransaksi() {
         const total = parseInt(document.getElementById('totalText').getAttribute('data-total')) || 0;
         const bayar = parseInt(document.getElementById('uangBayar').value) || 0;
-        if(keranjang.length === 0) return alert("Keranjang masih kosong!");
-        if(bayar < total) return alert("Uang bayar kurang!");
+        if(keranjang.length === 0 || bayar < total) return alert("Cek Keranjang/Uang!");
 
         let totalModal = 0;
         keranjang.forEach(item => {
@@ -274,14 +301,11 @@
         localStorage.setItem('v9_riwayat', JSON.stringify(dbRiwayat));
         
         cetakStruk(trx);
-        keranjang = []; 
-        document.getElementById('uangBayar').value = ''; 
-        renderKeranjang();
-        alert("Transaksi Berhasil Disimpan!");
+        keranjang = []; document.getElementById('uangBayar').value = ''; renderKeranjang();
     }
 
     function cetakStruk(t) {
-        const win = window.open('', '', 'width=300,height=450');
+        const win = window.open('', '', 'width=300,height=400');
         let items = t.items.map(i => `<tr><td>${i.nama} x${i.qty}</td><td align="right">${(i.qty*i.jual).toLocaleString()}</td></tr>`).join('');
         win.document.write(`
             <div style="font-family:monospace; font-size:12px; width:250px">
@@ -290,88 +314,120 @@
                 <b>TOTAL: Rp ${t.omzet.toLocaleString()}</b><br>
                 BAYAR: Rp ${t.bayar.toLocaleString()}<br>
                 KEMBALI: Rp ${t.kembali.toLocaleString()}<hr>
-                <center>Terima Kasih Atas Kunjungan Anda</center>
+                <center>Terima Kasih</center>
             </div>
             <script>window.onload=function(){window.print();window.close();}<\/script>
         `);
     }
 
-    // --- ADMIN LOGIC ---
+    // --- STOK & OPNAME ---
     function renderMaster() {
         const t = document.getElementById('tabelMaster'); t.innerHTML = '';
         dbBarang.forEach((x, i) => {
-            t.innerHTML += `<tr><td>${x.kode}</td><td>${x.nama}</td><td>${x.stok}</td><td>${x.jual.toLocaleString()}</td>
-            <td><button class="btn-danger" style="padding:5px 10px; border-radius:4px; border:none; cursor:pointer;" onclick="hapusBarang(${i})">Hapus</button></td></tr>`;
+            t.innerHTML += `<tr>
+                <td>${x.kode}</td>
+                <td>${x.nama}</td>
+                <td style="font-weight:bold">${x.stok}</td>
+                <td><input type="number" id="opname-${i}" placeholder="Fisik" style="width:80px; margin:0"></td>
+                <td>
+                    <button class="btn-success" style="padding:5px; width:auto" onclick="doOpname(${i})">Update</button>
+                    <button class="btn-danger" style="padding:5px; width:auto" onclick="hapusBarang(${i})">Hapus</button>
+                </td>
+            </tr>`;
         });
     }
 
+    function doOpname(idx) {
+        const inputFisik = document.getElementById(`opname-${idx}`).value;
+        if(inputFisik === "") return alert("Masukkan jumlah fisik!");
+        
+        const selisih = parseInt(inputFisik) - dbBarang[idx].stok;
+        dbBarang[idx].stok = parseInt(inputFisik);
+        localStorage.setItem('v9_barang', JSON.stringify(dbBarang));
+        renderMaster();
+        alert(`Opname Berhasil. Selisih: ${selisih}`);
+    }
+
+    function simpanBarang() {
+        const k = document.getElementById('mKode').value;
+        const n = document.getElementById('mNama').value;
+        const m = parseInt(document.getElementById('mModal').value);
+        const j = parseInt(document.getElementById('mJual').value);
+        const s = parseInt(document.getElementById('mStok').value);
+
+        if(!k || !n || isNaN(m)) return alert("Data tidak lengkap!");
+        dbBarang.push({kode:k, nama:n, modal:m, jual:j, stok:s});
+        localStorage.setItem('v9_barang', JSON.stringify(dbBarang));
+        ['mKode','mNama','mModal','mJual','mStok'].forEach(id => document.getElementById(id).value = '');
+        renderMaster();
+    }
+
     function hapusBarang(i) {
-        if(confirm("Hapus barang ini dari gudang?")) {
+        if(confirm("Hapus barang dari gudang?")) {
             dbBarang.splice(i,1);
             localStorage.setItem('v9_barang', JSON.stringify(dbBarang));
             renderMaster();
         }
     }
 
-    function simpanBarang() {
-        const k = document.getElementById('mKode').value;
-        const n = document.getElementById('mNama').value;
-        const mo = parseInt(document.getElementById('mModal').value);
-        const ju = parseInt(document.getElementById('mJual').value);
-        const st = parseInt(document.getElementById('mStok').value);
+    // --- PENGELOLAAN USER ---
+    function renderUser() {
+        const t = document.getElementById('tabelUser'); t.innerHTML = '';
+        dbUsers.forEach((u, i) => {
+            t.innerHTML += `<tr>
+                <td>${u.nama}</td>
+                <td>${u.user}</td>
+                <td><span class="badge ${u.role === 'admin' ? 'badge-admin' : 'badge-kasir'}">${u.role.toUpperCase()}</span></td>
+                <td>
+                    <button class="btn-danger" style="padding:5px; width:auto" onclick="hapusUser(${i})">Hapus</button>
+                </td>
+            </tr>`;
+        });
+    }
 
-        if(!k || !n || isNaN(mo)) return alert("Isi semua data!");
+    function tambahUser() {
+        const n = document.getElementById('uNama').value;
+        const u = document.getElementById('uUser').value;
+        const p = document.getElementById('uPass').value;
+        const r = document.getElementById('uRole').value;
 
-        dbBarang.push({kode:k, nama:n, modal:mo, jual:ju, stok:st});
-        localStorage.setItem('v9_barang', JSON.stringify(dbBarang));
-        
-        // Reset form
-        document.getElementById('mKode').value = '';
-        document.getElementById('mNama').value = '';
-        document.getElementById('mModal').value = '';
-        document.getElementById('mJual').value = '';
-        document.getElementById('mStok').value = '';
-        
-        renderMaster();
-        alert("Barang tersimpan.");
+        if(!n || !u || !p) return alert("Lengkapi data user!");
+        if(dbUsers.find(x => x.user === u)) return alert("Username sudah terpakai!");
+
+        dbUsers.push({nama:n, user:u, pass:p, role:r});
+        localStorage.setItem('v9_users', JSON.stringify(dbUsers));
+        ['uNama','uUser','uPass'].forEach(id => document.getElementById(id).value = '');
+        renderUser();
+        alert("User berhasil didaftarkan.");
+    }
+
+    function hapusUser(i) {
+        if(dbUsers[i].user === 'admin') return alert("Akun admin utama tidak bisa dihapus!");
+        if(confirm("Hapus user ini?")) {
+            dbUsers.splice(i, 1);
+            localStorage.setItem('v9_users', JSON.stringify(dbUsers));
+            renderUser();
+        }
+    }
+
+    // --- LAPORAN & DASHBOARD ---
+    function renderLaporan() {
+        const t = document.getElementById('tabelLaporan'); t.innerHTML = '';
+        let tO = 0, tL = 0;
+        dbRiwayat.forEach(x => {
+            tO += x.omzet; tL += x.laba;
+            t.innerHTML += `<tr><td>${x.waktu}</td><td>${x.id}</td><td>${x.omzet.toLocaleString()}</td><td>${x.laba.toLocaleString()}</td></tr>`;
+        });
+        document.getElementById('laporanFooter').innerHTML = `<tr class="tfoot-bold"><td colspan="2">TOTAL</td><td>Rp ${tO.toLocaleString()}</td><td>Rp ${tL.toLocaleString()}</td></tr>`;
     }
 
     function renderDashboard() {
-        const omzetTotal = dbRiwayat.reduce((a,b) => a + b.omzet, 0);
-        const labaTotal = dbRiwayat.reduce((a,b) => a + b.laba, 0);
+        const tO = dbRiwayat.reduce((a,b) => a + b.omzet, 0);
+        const tL = dbRiwayat.reduce((a,b) => a + b.laba, 0);
         document.getElementById('dashStats').innerHTML = `
-            <div class="stat-card" style="background:var(--info)"><h3>Produk Terdaftar</h3><h2>${dbBarang.length}</h2></div>
-            <div class="stat-card" style="background:var(--success)"><h3>Total Omzet</h3><h2>Rp ${omzetTotal.toLocaleString()}</h2></div>
-            <div class="stat-card" style="background:var(--warning)"><h3>Total Laba</h3><h2>Rp ${labaTotal.toLocaleString()}</h2></div>
-        `;
-    }
-
-    function renderLaporan() {
-        const t = document.getElementById('tabelLaporan'); 
-        const f = document.getElementById('laporanFooter');
-        t.innerHTML = '';
-        
-        let sumOmzet = 0;
-        let sumLaba = 0;
-
-        dbRiwayat.forEach(x => {
-            sumOmzet += x.omzet;
-            sumLaba += x.laba;
-            t.innerHTML += `<tr>
-                <td>${x.waktu}</td>
-                <td>${x.id}</td>
-                <td>${x.omzet.toLocaleString()}</td>
-                <td>${x.laba.toLocaleString()}</td>
-            </tr>`;
-        });
-
-        // Bagian Total Laporan
-        f.innerHTML = `
-            <tr class="tfoot-bold">
-                <td colspan="2" align="right">TOTAL KESELURUHAN</td>
-                <td>Rp ${sumOmzet.toLocaleString()}</td>
-                <td>Rp ${sumLaba.toLocaleString()}</td>
-            </tr>
+            <div class="stat-card" style="background:var(--info)"><h3>Produk</h3><h2>${dbBarang.length}</h2></div>
+            <div class="stat-card" style="background:var(--success)"><h3>Omzet</h3><h2>Rp ${tO.toLocaleString()}</h2></div>
+            <div class="stat-card" style="background:var(--warning)"><h3>Laba</h3><h2>Rp ${tL.toLocaleString()}</h2></div>
         `;
     }
 </script>
