@@ -1,116 +1,35 @@
-// Database Init
+// --- DATABASE INITIALIZATION ---
 let dbBarang = JSON.parse(localStorage.getItem('v9_barang')) || [];
 let dbUsers = JSON.parse(localStorage.getItem('v9_users')) || [{nama:'Owner', user:'admin', pass:'123', role:'admin'}];
 let dbRiwayat = JSON.parse(localStorage.getItem('v9_riwayat')) || [];
 let keranjang = [];
 
-// Login Logic
-function doLogin() {
-    const u = document.getElementById('username').value;
-    const p = document.getElementById('password').value;
-    const akun = dbUsers.find(x => x.user === u && x.pass === p);
-    if(akun) {
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'block';
-        document.getElementById('displayUser').innerText = akun.nama;
-        const isAdmin = akun.role === 'admin';
-        document.getElementById('menuAdminOnly').style.display = isAdmin ? 'block' : 'none';
-        document.getElementById('menuLaporanOnly').style.display = isAdmin ? 'block' : 'none';
-    } else { alert("User/Pass Salah!"); }
-}
-
-function doLogout() { location.reload(); }
-
-function showPage(id) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    if(id === 'masterBarang') renderMaster();
-    if(id === 'manajemenUser') renderUser();
-    if(id === 'dashboard') renderDashboard();
-    if(id === 'laporan') renderLaporan();
-}
-
-// Master Barang Logic
-function simpanBarang() {
-    const k = document.getElementById('mKode').value;
-    const n = document.getElementById('mNama').value;
-    const m = parseInt(document.getElementById('mModal').value) || 0;
-    const j = parseInt(document.getElementById('mJual').value) || 0;
-    const s = parseInt(document.getElementById('mStok').value) || 0;
-    const idx = document.getElementById('editIdx').value;
-
-    if(!k || !n) return alert("Barcode & Nama wajib diisi!");
-    const data = {kode:k, nama:n, modal:m, jual:j, stok:s};
-
-    if(idx === "-1") {
-        if(dbBarang.find(x => x.kode === k)) return alert("Barcode sudah ada!");
-        dbBarang.unshift(data);
-    } else { dbBarang[idx] = data; }
-
-    localStorage.setItem('v9_barang', JSON.stringify(dbBarang));
-    resetMaster(); renderMaster();
-}
-
-function renderMaster() {
-    const t = document.getElementById('tabelMaster'); t.innerHTML = '';
-    const cari = document.getElementById('cariBarang').value.toLowerCase();
-    dbBarang.forEach((x, i) => {
-        if(x.nama.toLowerCase().includes(cari) || x.kode.includes(cari)) {
-            t.innerHTML += `<tr>
-                <td>${x.kode}</td>
-                <td>${x.nama}</td>
-                <td>${x.modal.toLocaleString()}</td>
-                <td>${x.jual.toLocaleString()}</td>
-                <td>${x.stok}</td>
-                <td>
-                    <button class="btn-info" onclick="editBarang(${i})">Edit</button>
-                    <button class="btn-danger" onclick="hapusBarang(${i})">Hapus</button>
-                </td>
-            </tr>`;
-        }
-    });
-}
-
-function editBarang(i) {
-    const x = dbBarang[i];
-    document.getElementById('mKode').value = x.kode;
-    document.getElementById('mNama').value = x.nama;
-    document.getElementById('mModal').value = x.modal;
-    document.getElementById('mJual').value = x.jual;
-    document.getElementById('mStok').value = x.stok;
-    document.getElementById('editIdx').value = i;
-}
-
-function hapusBarang(i) {
-    if(confirm("Hapus?")) { 
-        dbBarang.splice(i,1); 
-        localStorage.setItem('v9_barang', JSON.stringify(dbBarang)); 
-        renderMaster(); 
-    }
-}
-
-function resetMaster() {
-    document.getElementById('editIdx').value = "-1";
-    ['mKode','mNama','mModal','mJual','mStok'].forEach(id => document.getElementById(id).value = '');
-}
-
-// --- LOGIKA TRANSAKSI (PERBAIKAN UTAMA) ---
+// --- FUNGSI TRANSAKSI KASIR (PENYEMPURNAAN) ---
 
 function handleKasirScan(e) {
     if(e.key === 'Enter') {
-        const val = document.getElementById('scanKasir').value;
+        const val = document.getElementById('scanKasir').value.trim();
+        if(!val) return;
+
+        // Cari berdasarkan kode atau nama
         const b = dbBarang.find(x => x.kode === val || x.nama.toLowerCase() === val.toLowerCase());
         
         if(b) {
-            if(b.stok <= 0) return alert("Stok Habis!");
-            const ada = keranjang.find(k => k.kode === b.kode);
-            if(ada) {
-                if(ada.qty < b.stok) ada.qty++; 
-                else alert("Stok tidak mencukupi!");
-            } else { 
-                keranjang.push({...b, qty:1}); 
+            if(parseInt(b.stok) <= 0) {
+                alert("Stok Habis!");
+            } else {
+                const ada = keranjang.find(k => k.kode === b.kode);
+                if(ada) {
+                    if(ada.qty < b.stok) {
+                        ada.qty++;
+                    } else {
+                        alert("Stok tidak mencukupi!");
+                    }
+                } else {
+                    keranjang.push({...b, qty: 1});
+                }
+                renderKeranjang();
             }
-            renderKeranjang();
         } else {
             alert("Barang tidak ditemukan!");
         }
@@ -119,21 +38,26 @@ function handleKasirScan(e) {
 }
 
 function renderKeranjang() {
-    const t = document.getElementById('keranjangTabel'); t.innerHTML = '';
+    const t = document.getElementById('keranjangTabel');
+    t.innerHTML = '';
     let total = 0;
+
     keranjang.forEach((k, i) => {
-        let sub = k.jual * k.qty; 
+        let sub = k.jual * k.qty;
         total += sub;
-        t.innerHTML += `<tr>
-            <td>${k.nama}</td>
-            <td>${k.jual.toLocaleString()}</td>
-            <td>${k.qty}</td>
-            <td>${sub.toLocaleString()}</td>
-            <td><button class="btn-danger" onclick="hapusKeranjang(${i})">❌</button></td>
-        </tr>`;
+        t.innerHTML += `
+            <tr>
+                <td>${k.nama}</td>
+                <td>Rp ${k.jual.toLocaleString()}</td>
+                <td>${k.qty}</td>
+                <td>Rp ${sub.toLocaleString()}</td>
+                <td><button class="btn btn-danger" style="padding: 2px 8px" onclick="hapusKeranjang(${i})">❌</button></td>
+            </tr>`;
     });
+
     document.getElementById('totalText').innerText = "Total: Rp " + total.toLocaleString();
-    document.getElementById('totalText').dataset.value = total;
+    // Simpan angka asli total tanpa format ke dalam atribut data untuk kalkulasi
+    document.getElementById('totalText').setAttribute('data-total', total);
     hitungKembalian();
 }
 
@@ -143,104 +67,101 @@ function hapusKeranjang(i) {
 }
 
 function hitungKembalian() {
-    const total = parseInt(document.getElementById('totalText').dataset.value) || 0;
+    const total = parseInt(document.getElementById('totalText').getAttribute('data-total')) || 0;
     const bayar = parseInt(document.getElementById('uangBayar').value) || 0;
     const kembali = bayar - total;
+    
     document.getElementById('kembaliText').innerText = "Kembali: Rp " + (kembali < 0 ? 0 : kembali).toLocaleString();
 }
 
+// --- FUNGSI SIMPAN & CETAK STRUK ---
+
 function prosesTransaksi() {
-    const total = parseInt(document.getElementById('totalText').dataset.value) || 0;
+    const total = parseInt(document.getElementById('totalText').getAttribute('data-total')) || 0;
     const bayar = parseInt(document.getElementById('uangBayar').value) || 0;
 
-    if (keranjang.length === 0) return alert("Keranjang kosong!");
-    if (bayar < total) return alert("Uang bayar kurang!");
+    if (keranjang.length === 0) return alert("Keranjang masih kosong!");
+    if (!bayar || bayar < total) return alert("Uang bayar tidak cukup!");
 
-    // 1. Kurangi Stok & Hitung Laba
-    let totalModal = 0;
+    // 1. Update Stok Barang & Hitung Modal
+    let totalModalTransaksi = 0;
     keranjang.forEach(item => {
-        const produkAsli = dbBarang.find(b => b.kode === item.kode);
-        if (produkAsli) {
-            produkAsli.stok -= item.qty;
-            totalModal += (produkAsli.modal * item.qty);
+        const indexBarang = dbBarang.findIndex(b => b.kode === item.kode);
+        if (indexBarang !== -1) {
+            dbBarang[indexBarang].stok = parseInt(dbBarang[indexBarang].stok) - item.qty;
+            totalModalTransaksi += (parseInt(dbBarang[indexBarang].modal) * item.qty);
         }
     });
 
-    // 2. Simpan ke Riwayat
+    // 2. Simpan ke Riwayat (Laporan)
     const dataTransaksi = {
+        id: "TRX-" + Date.now(),
         waktu: new Date().toLocaleString('id-ID'),
         omzet: total,
-        modal: totalModal,
-        laba: total - totalModal,
-        items: [...keranjang]
+        modal: totalModalTransaksi,
+        laba: total - totalModalTransaksi,
+        items: [...keranjang],
+        bayar: bayar,
+        kembali: bayar - total
     };
-    dbRiwayat.push(dataTransaksi);
 
-    // 3. Update Local Storage
+    dbRiwayat.unshift(dataTransaksi); // Simpan di urutan teratas
+
+    // 3. Simpan Permanen ke LocalStorage
     localStorage.setItem('v9_barang', JSON.stringify(dbBarang));
     localStorage.setItem('v9_riwayat', JSON.stringify(dbRiwayat));
 
-    // 4. Struk & Reset
-    alert("Transaksi Berhasil!\nKembali: Rp " + (bayar - total).toLocaleString());
+    // 4. Jalankan Fungsi Cetak
+    cetakStruk(dataTransaksi);
+
+    // 5. Reset Kasir
+    alert("Transaksi Berhasil Disimpan!");
     keranjang = [];
     document.getElementById('uangBayar').value = '';
     renderKeranjang();
-    if(confirm("Cetak Struk?")) { window.print(); }
 }
 
-// --- DASHBOARD & LAPORAN ---
-
-function renderDashboard() {
-    const stats = document.getElementById('dashStats');
-    const totalOmzet = dbRiwayat.reduce((a, b) => a + b.omzet, 0);
-    const totalLaba = dbRiwayat.reduce((a, b) => a + b.laba, 0);
-    const totalBarang = dbBarang.length;
-
-    stats.innerHTML = `
-        <div class="card" style="background: var(--info); color: white">
-            <h3>Produk</h3>
-            <h2>${totalBarang}</h2>
-        </div>
-        <div class="card" style="background: var(--success); color: white">
-            <h3>Omzet</h3>
-            <h2>Rp ${totalOmzet.toLocaleString()}</h2>
-        </div>
-        <div class="card" style="background: var(--warning); color: white">
-            <h3>Laba</h3>
-            <h2>Rp ${totalLaba.toLocaleString()}</h2>
+function cetakStruk(trx) {
+    let strukHTML = `
+        <div style="width: 300px; font-family: monospace; font-size: 12px; padding: 10px;">
+            <div style="text-align: center;">
+                <strong>IKAMAPUSAT</strong><br>
+                Sistem Terpadu Kasir<br>
+                --------------------------------<br>
+                ${trx.waktu}<br>
+                No: ${trx.id}<br>
+                --------------------------------<br>
+            </div>
+            <table style="width: 100%; border-collapse: collapse;">
+                ${trx.items.map(it => `
+                    <tr>
+                        <td colspan="2">${it.nama}</td>
+                    </tr>
+                    <tr>
+                        <td>${it.qty} x ${it.jual.toLocaleString()}</td>
+                        <td style="text-align: right;">${(it.qty * it.jual).toLocaleString()}</td>
+                    </tr>
+                `).join('')}
+            </table>
+            --------------------------------<br>
+            <table style="width: 100%;">
+                <tr><td>TOTAL</td><td style="text-align: right;">Rp ${trx.omzet.toLocaleString()}</td></tr>
+                <tr><td>BAYAR</td><td style="text-align: right;">Rp ${trx.bayar.toLocaleString()}</td></tr>
+                <tr><td>KEMBALI</td><td style="text-align: right;">Rp ${trx.kembali.toLocaleString()}</td></tr>
+            </table>
+            --------------------------------<br>
+            <div style="text-align: center;">
+                Terima Kasih Atas Kunjungan Anda
+            </div>
         </div>
     `;
-}
 
-function renderLaporan() {
-    const t = document.getElementById('tabelLaporan'); t.innerHTML = '';
-    dbRiwayat.forEach(x => {
-        t.innerHTML += `<tr>
-            <td>${x.waktu}</td>
-            <td>${x.omzet.toLocaleString()}</td>
-            <td>${x.modal.toLocaleString()}</td>
-            <td>${x.laba.toLocaleString()}</td>
-        </tr>`;
-    });
-}
-
-function tambahUser() {
-    const n = document.getElementById('uNama').value;
-    const u = document.getElementById('uUser').value;
-    const p = document.getElementById('uPass').value;
-    const r = document.getElementById('uRole').value;
-    if(!n || !u || !p) return alert("Isi semua data user!");
-    dbUsers.push({nama:n, user:u, pass:p, role:r});
-    localStorage.setItem('v9_users', JSON.stringify(dbUsers));
-    renderUser();
-}
-
-function renderUser() {
-    const t = document.getElementById('tabelUser'); t.innerHTML = '';
-    dbUsers.forEach((x,i) => {
-        t.innerHTML += `<tr>
-            <td>${x.nama}</td><td>${x.user}</td><td>${x.role}</td>
-            <td><button class="btn-danger" onclick="dbUsers.splice(${i},1);localStorage.setItem('v9_users', JSON.stringify(dbUsers));renderUser()">Hapus</button></td>
-        </tr>`;
-    });
+    // Membuka jendela cetak baru
+    const printWindow = window.open('', '', 'width=400,height=600');
+    printWindow.document.write('<html><head><title>Struk Belanja</title></head><body>');
+    printWindow.document.write(strukHTML);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+    printWindow.close();
 }
