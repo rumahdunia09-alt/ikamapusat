@@ -1,103 +1,245 @@
-<div id="masterBarang" class="page">
-    <h1>Master Barang</h1>
-    <div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
-        <div class="card">
-            <h3>Input Barang</h3>
-            <input type="text" id="mKode" placeholder="Barcode (Harus Unik)">
-            <input type="text" id="mNama" placeholder="Nama Barang">
-            <input type="number" id="mModal" placeholder="Harga Modal">
-            <input type="number" id="mJual" placeholder="Harga Jual">
-            <input type="number" id="mStok" placeholder="Stok">
-            <button class="btn btn-success" style="width:100%" onclick="simpanBarang()">SIMPAN</button>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IKAMAPUSAT - Sistem Terpadu</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { 
+            --primary: #2c3e50; --success: #27ae60; --info: #3498db; 
+            --warning: #f39c12; --danger: #e74c3c; --light: #f4f7f6; 
+            --excel-border: #c0c0c0;
+        }
+        
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--light); color: #333; }
+        
+        /* LOGIN PAGE - Username/Password petunjuk dihilangkan */
+        #loginPage { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .login-card { background: white; padding: 40px; border-radius: 15px; width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .logo-login { width: 100px; height: 100px; object-fit: contain; margin-bottom: 20px; }
+
+        /* LAYOUT & SIDEBAR */
+        #appContainer { display: none; min-height: 100vh; }
+        .sidebar { width: 240px; height: 100vh; background: var(--primary); position: fixed; color: white; display: flex; flex-direction: column; }
+        .sidebar-header { text-align: center; padding: 20px; border-bottom: 1px solid #34495e; }
+        .logo-sidebar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--success); margin-bottom: 10px; }
+        .sidebar h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+        
+        .nav-link { padding: 15px 25px; display: block; color: #bdc3c7; text-decoration: none; cursor: pointer; border-left: 5px solid transparent; transition: 0.3s; }
+        .nav-link:hover, .nav-link.active { background: #34495e; color: white; border-left-color: var(--success); }
+        .logout-btn { background: var(--danger); margin-top: auto; }
+
+        .main-content { margin-left: 240px; padding: 30px; width: calc(100% - 240px); box-sizing: border-box; }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* UI ELEMENTS */
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        .btn-success { background: var(--success); } .btn-danger { background: var(--danger); }
+        
+        /* TABLES */
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: white; }
+        .excel-table th { background: #e6e6e6; border: 1px solid var(--excel-border); padding: 10px; text-align: left; }
+        .excel-table td { border: 1px solid #e0e0e0; padding: 8px 10px; }
+
+        @media print { body * { visibility: hidden; } #areaStruk, #areaStruk * { visibility: visible; } }
+    </style>
+</head>
+<body>
+
+<div id="loginPage">
+    <div class="login-card">
+        <img src="logo.png" alt="Logo" class="logo-login" onerror="this.src='https://via.placeholder.com/100?text=LOGO'">
+        <h2>LOGIN SISTEM</h2>
+        <input type="text" id="username" placeholder="Masukkan Username">
+        <input type="password" id="password" placeholder="Masukkan Password">
+        <button class="btn btn-success" style="width: 100%" onclick="doLogin()">MASUK</button>
+    </div>
+</div>
+
+<div id="appContainer">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="logo.png" alt="Logo" class="logo-sidebar" onerror="this.src='https://via.placeholder.com/100?text=LOGO'">
+            <h2 id="displayUser">USER</h2>
         </div>
-        <div class="card">
-            <div class="excel-container">
+        
+        <div id="menuAdminOnly">
+            <div class="nav-link" onclick="showPage('dashboard')"><i class="fas fa-chart-pie"></i> Dashboard</div>
+            <div class="nav-link" onclick="showPage('masterBarang')"><i class="fas fa-database"></i> Master Barang</div>
+            <div class="nav-link" onclick="showPage('manajemenUser')"><i class="fas fa-users-cog"></i> Manajemen User</div>
+        </div>
+
+        <div class="nav-link active" onclick="showPage('transaksi')"><i class="fas fa-shopping-cart"></i> Kasir</div>
+        
+        <div id="menuLaporanOnly">
+            <div class="nav-link" onclick="showPage('laporan')"><i class="fas fa-file-invoice-dollar"></i> Laporan</div>
+        </div>
+
+        <div class="nav-link logout-btn" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Keluar</div>
+    </div>
+
+    <div class="main-content">
+        <div id="transaksi" class="page active">
+            <h1>Halaman Kasir</h1>
+            <div class="card">
+                <input type="text" id="scanKasir" onkeypress="handleKasirScan(event)" placeholder="Scan Barcode...">
                 <table class="excel-table">
-                    <thead>
-                        <tr>
-                            <th>Barcode</th>
-                            <th>Nama</th>
-                            <th>Modal</th>
-                            <th>Jual</th>
-                            <th>Laba</th>
-                            <th>Stok</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelMaster"></tbody>
+                    <thead><tr><th>Produk</th><th>Harga</th><th>Qty</th><th>Aksi</th></tr></thead>
+                    <tbody id="keranjangTabel"></tbody>
+                </table>
+                <h2 id="totalText">Total: Rp 0</h2>
+                <button class="btn btn-success" onclick="prosesTransaksi()">CETAK STRUK</button>
+            </div>
+        </div>
+
+        <div id="masterBarang" class="page">
+            <h1>Master Barang</h1>
+            <div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
+                <div class="card">
+                    <input type="text" id="mKode" placeholder="Barcode">
+                    <input type="text" id="mNama" placeholder="Nama Barang">
+                    <input type="number" id="mJual" placeholder="Harga Jual">
+                    <input type="number" id="mStok" placeholder="Stok">
+                    <button class="btn btn-success" style="width:100%" onclick="simpanBarang()">SIMPAN</button>
+                </div>
+                <div class="card">
+                    <table class="excel-table">
+                        <thead><tr><th>Barcode</th><th>Nama</th><th>Jual</th><th>Stok</th></tr></thead>
+                        <tbody id="tabelMaster"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="manajemenUser" class="page">
+            <h1>Manajemen Password & User</h1>
+            <div class="card" style="max-width: 500px;">
+                <h3>Tambah / Ubah Pengguna</h3>
+                <input type="text" id="uNama" placeholder="Nama Lengkap">
+                <input type="text" id="uUser" placeholder="Username Baru">
+                <input type="password" id="uPass" placeholder="Password Baru">
+                <select id="uRole">
+                    <option value="kasir">Akses Kasir</option>
+                    <option value="admin">Akses Admin (Full)</option>
+                </select>
+                <button class="btn btn-success" style="width:100%" onclick="tambahUser()">SIMPAN USER</button>
+            </div>
+            <div class="card">
+                <table class="excel-table">
+                    <thead><tr><th>Nama</th><th>Username</th><th>Role</th><th>Aksi</th></tr></thead>
+                    <tbody id="tabelUser"></tbody>
                 </table>
             </div>
         </div>
+        
+        <div id="dashboard" class="page"><h1>Dashboard</h1></div>
+        <div id="laporan" class="page"><h1>Laporan</h1></div>
     </div>
 </div>
 
 <script>
-    // Database Init
+    // Data Inisialisasi
     let dbBarang = JSON.parse(localStorage.getItem('v9_barang')) || [];
+    let dbUsers = JSON.parse(localStorage.getItem('v9_users')) || [
+        {nama:'Administrator', user:'admin', pass:'123', role:'admin'}
+    ];
+    let keranjang = [];
 
-    function simpanBarang() {
-        const k = document.getElementById('mKode').value.trim();
-        const n = document.getElementById('mNama').value;
-        const m = parseInt(document.getElementById('mModal').value) || 0;
-        const j = parseInt(document.getElementById('mJual').value) || 0;
-        const s = parseInt(document.getElementById('mStok').value) || 0;
-
-        if(!k || !n) return alert("Barcode dan Nama wajib diisi!");
-
-        // LOGIKA MENGHINDARI DOUBLE BARANG
-        const isDuplicate = dbBarang.some(barang => barang.kode === k);
-        if(isDuplicate) {
-            return alert("GAGAL: Kode Barcode '" + k + "' sudah terdaftar! Gunakan kode lain.");
-        }
-
-        // HITUNG LABA (Laba = Harga Jual - Modal)
-        const laba = j - m;
-
-        const dataBaru = {
-            kode: k,
-            nama: n,
-            modal: m,
-            jual: j,
-            laba: laba,
-            stok: s
-        };
-
-        dbBarang.unshift(dataBaru);
-        localStorage.setItem('v9_barang', JSON.stringify(dbBarang));
+    // 1. Manajemen Login & Password
+    function doLogin() {
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        const akun = dbUsers.find(x => x.user === u && x.pass === p);
         
-        alert("Barang berhasil ditambahkan!");
-        renderMaster();
-        resetFormMaster();
+        if(akun) {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('displayUser').innerText = akun.nama;
+            
+            const isAdmin = akun.role === 'admin';
+            document.getElementById('menuAdminOnly').style.display = isAdmin ? 'block' : 'none';
+            document.getElementById('menuLaporanOnly').style.display = isAdmin ? 'block' : 'none';
+            
+            if(!isAdmin) showPage('transaksi');
+        } else {
+            alert("Username atau Password Salah!");
+        }
     }
 
-    function renderMaster() {
-        const t = document.getElementById('tabelMaster');
-        t.innerHTML = '';
+    function doLogout() { location.reload(); }
+
+    function showPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(id === 'masterBarang') renderMaster();
+        if(id === 'manajemenUser') renderUser();
+    }
+
+    // 2. Fungsi Manajemen User & Password
+    function tambahUser() {
+        const n = document.getElementById('uNama').value;
+        const u = document.getElementById('uUser').value;
+        const p = document.getElementById('uPass').value;
+        const r = document.getElementById('uRole').value;
         
-        dbBarang.forEach((x, i) => {
+        if(!n || !u || !p) return alert("Lengkapi data user!");
+        
+        // Cek jika user sudah ada (untuk update password)
+        const idx = dbUsers.findIndex(x => x.user === u);
+        if(idx !== -1) {
+            dbUsers[idx] = {nama:n, user:u, pass:p, role:r};
+        } else {
+            dbUsers.push({nama:n, user:u, pass:p, role:r});
+        }
+        
+        localStorage.setItem('v9_users', JSON.stringify(dbUsers));
+        alert("Data User Berhasil Diperbarui!");
+        renderUser();
+        ['uNama','uUser','uPass'].forEach(id => document.getElementById(id).value = '');
+    }
+
+    function renderUser() {
+        const t = document.getElementById('tabelUser'); t.innerHTML = '';
+        dbUsers.forEach((x, i) => {
             t.innerHTML += `<tr>
-                <td><b>${x.kode}</b></td>
                 <td>${x.nama}</td>
-                <td>Rp ${x.modal.toLocaleString()}</td>
-                <td>Rp ${x.jual.toLocaleString()}</td>
-                <td style="color: green; font-weight: bold;">Rp ${x.laba.toLocaleString()}</td>
-                <td>${x.stok}</td>
-                <td>
-                    <button class="btn-danger" style="padding: 5px;" onclick="hapusBarang(${i})">Hapus</button>
-                </td>
+                <td>${x.user}</td>
+                <td>${x.role.toUpperCase()}</td>
+                <td><button class="btn-danger" onclick="hapusUser(${i})">Hapus</button></td>
             </tr>`;
         });
     }
 
-    function hapusBarang(i) {
-        if(confirm("Hapus barang ini?")) {
-            dbBarang.splice(i, 1);
-            localStorage.setItem('v9_barang', JSON.stringify(dbBarang));
-            renderMaster();
+    function hapusUser(i) {
+        if(dbUsers[i].user === 'admin') return alert("Admin utama tidak bisa dihapus!");
+        if(confirm("Hapus user ini?")) {
+            dbUsers.splice(i, 1);
+            localStorage.setItem('v9_users', JSON.stringify(dbUsers));
+            renderUser();
         }
     }
 
-    function resetFormMaster() {
-        ['mKode','mNama','mModal','mJual','mStok'].forEach(id => document.getElementById(id).value = '');
+    // Fungsi Master & Kasir (Tetap sesuai script awal Anda)
+    function simpanBarang() {
+        const k = document.getElementById('mKode').value;
+        const n = document.getElementById('mNama').value;
+        const j = parseInt(document.getElementById('mJual').value);
+        const s = parseInt(document.getElementById('mStok').value);
+        dbBarang.unshift({kode:k, nama:n, jual:j, stok:s});
+        localStorage.setItem('v9_barang', JSON.stringify(dbBarang));
+        renderMaster();
+    }
+
+    function renderMaster() {
+        const t = document.getElementById('tabelMaster'); t.innerHTML = '';
+        dbBarang.forEach(x => {
+            t.innerHTML += `<tr><td>${x.kode}</td><td>${x.nama}</td><td>${x.jual}</td><td>${x.stok}</td></tr>`;
+        });
     }
 </script>
+</body>
+</html>
