@@ -3,23 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IKAMAPUSAT - Cloud Pro v18</title>
+    <title>IKAMAPUSAT - Ultimate Cloud v19</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        :root { --p: #007bff; --s: #28a745; --d: #dc3545; --g: #6c757d; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
+        :root { --p: #007bff; --s: #28a745; --d: #dc3545; --g: #6c757d; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; min-height: 100vh; }
         
-        .navbar { background: #fff; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .nav-brand { display: flex; align-items: center; gap: 10px; }
-        .logo-img { height: 40px; width: auto; }
+        /* Navigation */
+        .navbar { background: #fff; padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .menu-bar { background: #2c3e50; padding: 10px 25px; display: flex; gap: 15px; }
+        .menu-item { color: #fff; cursor: pointer; padding: 8px 15px; border-radius: 5px; font-size: 14px; text-decoration: none; transition: 0.3s; }
+        .menu-item:hover, .menu-item.active { background: var(--p); }
 
-        .container { padding: 20px; max-width: 1200px; margin: auto; flex: 1; width: 100%; box-sizing: border-box; }
+        .container { padding: 20px; flex: 1; box-sizing: border-box; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         
+        /* Grid & Forms */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         input, button, select { padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
         button { cursor: pointer; background: var(--p); color: white; border: none; font-weight: bold; }
         .btn-s { background: var(--s); } .btn-d { background: var(--d); } .btn-g { background: var(--g); }
@@ -28,84 +32,98 @@
         th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
         th { background: #fafafa; }
         
-        .badge { padding: 2px 6px; background: #eee; border-radius: 4px; font-size: 11px; }
-        .footer-license { text-align: center; padding: 20px; font-size: 12px; color: #7f8c8d; background: #fff; border-top: 1px solid #eee; }
+        #loginPage { max-width: 400px; margin: 80px auto; }
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; background: #eee; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="loginPage" style="max-width: 400px; margin: 80px auto;" class="card">
-        <h2 style="text-align:center; margin-top: 0;">IKAMAPUSAT LOGIN</h2>
-        <input type="text" id="username" placeholder="Username">
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="doLogin()">MASUK</button>
+    <div id="loginPage" class="card">
+        <h2 style="text-align:center;">LOGIN SYSTEM</h2>
+        <input type="text" id="username" placeholder="Username (admin/kasir1)">
+        <input type="password" id="password" placeholder="Password (123)">
+        <button onclick="doLogin()">MASUK KE SISTEM</button>
     </div>
 
-    <div id="appContainer" style="display:none;">
+    <div id="appContainer" class="hidden">
         <div class="navbar">
-            <div class="nav-brand">
-                <h3 style="margin:0">IKAMAPUSAT CLOUD v18</h3>
-            </div>
+            <h3 style="margin:0; color:var(--p)">IKAMAPUSAT <small style="color:#999; font-weight:normal">v19</small></h3>
             <div>
                 <span id="displayUser" style="margin-right:15px; font-weight:bold"></span>
-                <button class="btn-d" style="width:auto; padding:8px 15px" onclick="location.reload()">Keluar</button>
+                <button class="btn-d" style="width:auto; padding:8px 15px" onclick="location.reload()">Logout</button>
             </div>
         </div>
 
+        <div class="menu-bar">
+            <div class="menu-item active" onclick="showPage('kasir', this)"><i class="fas fa-cash-register"></i> Kasir</div>
+            <div class="menu-item adm-only" onclick="showPage('master', this)"><i class="fas fa-boxes"></i> Master Barang</div>
+            <div class="menu-item adm-only" onclick="showPage('laporan', this)"><i class="fas fa-file-invoice-dollar"></i> Laporan Transaksi</div>
+        </div>
+
         <div class="container">
-            <div class="grid">
-                <div class="card">
-                    <h3>Kasir (Penjualan)</h3>
-                    <input type="text" id="scanKasir" placeholder="Scan Barcode / Nama Barang..." onkeypress="handleKasirScan(event)">
-                    <table>
-                        <thead><tr><th>Produk</th><th>Satuan</th><th>Qty</th><th>Subtotal</th></tr></thead>
-                        <tbody id="bodyKeranjang"></tbody>
-                    </table>
-                    <h2 id="totalBelanja" style="text-align:right; color:var(--s);">Total: Rp 0</h2>
-                    <input type="number" id="bayar" placeholder="Uang Bayar...">
-                    <button class="btn-s" onclick="prosesTransaksi()">SIMPAN TRANSAKSI</button>
-                </div>
-
-                <div class="card">
-                    <h3>Master Barang</h3>
-                    <div id="formInput" style="background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-                        <input type="text" id="m_kode" placeholder="Barcode / Kode Barang">
-                        <input type="text" id="m_nama" placeholder="Nama Barang">
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="m_kategori" placeholder="Kategori">
-                            <select id="m_satuan">
-                                <option value="pcs">Pcs</option>
-                                <option value="kg">Kg</option>
-                                <option value="liter">Liter</option>
-                                <option value="dus">Dus</option>
-                            </select>
-                        </div>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="number" id="m_modal" placeholder="Harga Modal">
-                            <input type="number" id="m_harga" placeholder="Harga Jual">
-                        </div>
-                        <input type="number" id="m_stok" placeholder="Jumlah Stok">
-                        <button class="btn-s" onclick="tambahBarang()">SIMPAN BARANG</button>
+            <div id="page-kasir" class="section">
+                <div class="grid">
+                    <div class="card">
+                        <h3>Transaksi Baru</h3>
+                        <input type="text" id="scanKasir" placeholder="Cari Nama / Scan Barcode..." onkeypress="handleKasirScan(event)">
+                        <table id="tblKeranjang">
+                            <thead><tr><th>Produk</th><th>Qty</th><th>Subtotal</th></tr></thead>
+                            <tbody id="bodyKeranjang"></tbody>
+                        </table>
+                        <h2 id="totalBelanja" style="text-align:right; color:var(--s); margin:20px 0;">Total: Rp 0</h2>
+                        <button class="btn-s" style="padding:15px" onclick="prosesTransaksi()">SIMPAN & CETAK STRUK</button>
                     </div>
+                </div>
+            </div>
 
-                    <div style="max-height: 300px; overflow-y: auto;">
+            <div id="page-master" class="section hidden">
+                <div class="card">
+                    <h3>Import Data Excel (CSV)</h3>
+                    <div style="background:#f0f7ff; padding:15px; border-radius:10px; border:1px dashed var(--p)">
+                        <input type="file" id="inpCsv" accept=".csv" style="width:auto">
+                        <button class="btn-s" style="width:auto" onclick="importCsv()">Import CSV</button>
+                        <button class="btn-g" style="width:auto" onclick="exportCsv()">Export CSV</button>
+                    </div>
+                </div>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Input Barang Manual</h3>
+                        <input type="text" id="m_kode" placeholder="Barcode">
+                        <input type="text" id="m_nama" placeholder="Nama Barang">
+                        <input type="text" id="m_kat" placeholder="Kategori">
+                        <select id="m_sat">
+                            <option value="pcs">Pcs</option><option value="kg">Kg</option>
+                            <option value="liter">Liter</option><option value="dus">Dus</option>
+                        </select>
+                        <input type="number" id="m_modal" placeholder="Harga Modal">
+                        <input type="number" id="m_harga" placeholder="Harga Jual">
+                        <input type="number" id="m_stok" placeholder="Stok Awal">
+                        <button class="btn-s" onclick="tambahBarang()">SIMPAN DATA</button>
+                    </div>
+                    <div class="card" style="overflow-x:auto">
+                        <h3>Daftar Stok</h3>
                         <table>
-                            <thead><tr><th>Nama</th><th>Satuan</th><th>Stok</th><th>Aksi</th></tr></thead>
+                            <thead><tr><th>Barang</th><th>Satuan</th><th>Harga</th><th>Stok</th></tr></thead>
                             <tbody id="bodyMaster"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="footer-license">
-            <strong>IKAMAPUSAT CLOUD SYSTEM</strong><br>
-            By: Duniatanpaspasi-2026 | Modal, Satuan, & Auto-Reset Enabled
+            <div id="page-laporan" class="section hidden">
+                <div class="card">
+                    <h3>Riwayat Transaksi</h3>
+                    <table id="tblLaporan">
+                        <thead><tr><th>Waktu</th><th>Kasir</th><th>Total</th><th>Profit</th></tr></thead>
+                        <tbody id="bodyLaporan"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
 <script>
-    // FIREBASE CONFIG
     const firebaseConfig = {
         apiKey: "AIzaSyAvJdH3fnfUvupwtRDbSvhBjiY3tIxXnW0",
         authDomain: "kasir-ikamapusat.firebaseapp.com",
@@ -118,78 +136,101 @@
 
     firebase.initializeApp(firebaseConfig);
     const dbCloud = firebase.database();
+    
+    let dbBarang = [], dbRiwayat = [], keranjang = [], userLogin = null;
 
-    let dbBarang = [], dbRiwayat = [], keranjang = [], currentUser = null;
-
-    // Listener Data - Menggunakan v18 agar struktur baru aman
-    dbCloud.ref('v18_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); });
-    dbCloud.ref('v18_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; });
+    // Database Listeners
+    dbCloud.ref('v19_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); });
+    dbCloud.ref('v19_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; renderLaporan(); });
 
     function doLogin() {
-        const u = document.getElementById('username').value, p = document.getElementById('password').value;
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        
         if(u === 'admin' && p === '123') {
-            currentUser = {nama: 'Admin'};
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'block';
-            document.getElementById('displayUser').innerText = "Halo, Admin";
-        } else { alert("Login Gagal!"); }
+            userLogin = {nama: 'Administrator', role: 'admin'};
+        } else if(u === 'kasir1' && p === '123') {
+            userLogin = {nama: 'Kasir Utama', role: 'kasir'};
+        } else {
+            return alert("User tidak ditemukan!");
+        }
+
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('appContainer').classList.remove('hidden');
+        document.getElementById('displayUser').innerText = userLogin.nama;
+        
+        // Proteksi Menu Kasir (Hanya Admin yang bisa lihat Master & Laporan)
+        if(userLogin.role !== 'admin') {
+            document.querySelectorAll('.adm-only').forEach(el => el.classList.add('hidden'));
+        }
     }
 
-    // --- FUNGSI TAMBAH BARANG (YANG DISERMPURNAKAN) ---
+    function showPage(pageId, el) {
+        document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+        document.getElementById('page-' + pageId).classList.remove('hidden');
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    // --- MANAJEMEN BARANG ---
     function tambahBarang() {
-        const k = document.getElementById('m_kode');
-        const n = document.getElementById('m_nama');
-        const kat = document.getElementById('m_kategori');
-        const sat = document.getElementById('m_satuan');
-        const m = document.getElementById('m_modal');
-        const h = document.getElementById('m_harga');
-        const s = document.getElementById('m_stok');
+        const k = document.getElementById('m_kode'), n = document.getElementById('m_nama'), 
+              kat = document.getElementById('m_kat'), sat = document.getElementById('m_sat'),
+              m = document.getElementById('m_modal'), h = document.getElementById('m_harga'),
+              s = document.getElementById('m_stok');
 
-        if(!k.value || !n.value || !h.value) return alert("Kode, Nama, dan Harga Jual wajib diisi!");
+        dbBarang.push({
+            kode: k.value, nama: n.value, kategori: kat.value, satuan: sat.value,
+            modal: parseInt(m.value), harga: parseInt(h.value), stok: parseInt(s.value)
+        });
 
-        const dataBaru = {
-            kode: k.value,
-            nama: n.value,
-            kategori: kat.value || 'Umum',
-            satuan: sat.value,
-            modal: parseInt(m.value) || 0,
-            harga: parseInt(h.value) || 0,
-            stok: parseInt(s.value) || 0
-        };
-
-        dbBarang.push(dataBaru);
-        
-        dbCloud.ref('v18_barang').set(dbBarang).then(() => {
-            alert("Barang Berhasil Disimpan!");
-            
-            // RESET SEMUA INPUT KE NOL / KOSONG
-            k.value = '';
-            n.value = '';
-            kat.value = '';
-            m.value = '';
-            h.value = '';
-            s.value = '';
-            
-            // Kembalikan kursor ke input kode (Auto-Focus)
-            k.focus();
+        dbCloud.ref('v19_barang').set(dbBarang).then(() => {
+            alert("Berhasil!");
+            [k,n,kat,m,h,s].forEach(i => i.value = ''); k.focus();
         });
     }
 
     function renderMaster() {
         const b = document.getElementById('bodyMaster'); b.innerHTML = '';
-        dbBarang.forEach((brg, i) => {
+        dbBarang.forEach(brg => {
             b.innerHTML += `<tr>
-                <td>${brg.nama}<br><small class="badge">${brg.kategori}</small></td>
-                <td>${brg.satuan}</td>
+                <td>${brg.nama}<br><small>${brg.kode}</small></td>
+                <td><span class="badge">${brg.satuan}</span></td>
+                <td>${brg.harga.toLocaleString()}</td>
                 <td style="${brg.stok <= 5 ? 'color:red;font-weight:bold':''}">${brg.stok}</td>
-                <td><button class="btn-d" style="padding:5px" onclick="hapusBarang(${i})">Hapus</button></td>
             </tr>`;
         });
     }
 
-    function hapusBarang(i) { if(confirm("Hapus barang ini?")) { dbBarang.splice(i,1); dbCloud.ref('v18_barang').set(dbBarang); } }
+    // --- EXCEL FEATURE ---
+    function importCsv() {
+        const file = inpCsv.files[0];
+        if(!file) return alert("Pilih file CSV!");
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const rows = e.target.result.split("\n");
+            rows.forEach((row, i) => {
+                if(i === 0 || !row.trim()) return;
+                const c = row.split(",");
+                if(c.length >= 7) {
+                    dbBarang.push({kode:c[0], nama:c[1], kategori:c[2], satuan:c[3], modal:parseInt(c[4]), harga:parseInt(c[5]), stok:parseInt(c[6])});
+                }
+            });
+            dbCloud.ref('v19_barang').set(dbBarang);
+            alert("Import Selesai!");
+        };
+        reader.readAsText(file);
+    }
 
-    // --- LOGIKA KASIR ---
+    function exportCsv() {
+        let csv = "Kode,Nama,Kategori,Satuan,Modal,Jual,Stok\n";
+        dbBarang.forEach(b => csv += `${b.kode},${b.nama},${b.kategori},${b.satuan},${b.modal},${b.harga},${b.stok}\n`);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+        a.download = 'Database_Ikamapusat.csv'; a.click();
+    }
+
+    // --- KASIR LOGIC ---
     function handleKasirScan(e) {
         if(e.key === 'Enter') {
             const val = document.getElementById('scanKasir').value;
@@ -207,38 +248,38 @@
     function renderKeranjang() {
         const b = document.getElementById('bodyKeranjang'); b.innerHTML = '';
         let total = 0;
-        keranjang.forEach((k, i) => {
+        keranjang.forEach(k => {
             let sub = k.qty * k.harga; total += sub;
-            b.innerHTML += `<tr>
-                <td>${k.nama}</td>
-                <td>${k.satuan}</td>
-                <td>${k.qty}</td>
-                <td>Rp ${sub.toLocaleString()}</td>
-            </tr>`;
+            b.innerHTML += `<tr><td>${k.nama}</td><td>${k.qty}</td><td>${sub.toLocaleString()}</td></tr>`;
         });
         document.getElementById('totalBelanja').innerText = "Total: Rp " + total.toLocaleString();
     }
 
     function prosesTransaksi() {
         if(keranjang.length === 0) return;
-        
-        // Potong Stok
+        let totalProfit = 0;
         keranjang.forEach(item => {
+            totalProfit += (item.qty * (item.harga - item.modal));
             const idx = dbBarang.findIndex(b => b.kode === item.kode);
             if(idx !== -1) dbBarang[idx].stok -= item.qty;
         });
 
         const total = parseInt(document.getElementById('totalBelanja').innerText.replace(/\D/g,''));
-        const trx = { waktu: new Date().toLocaleString(), total: total, items: [...keranjang] };
-
-        dbRiwayat.unshift(trx);
-        dbCloud.ref('v18_barang').set(dbBarang);
-        dbCloud.ref('v18_riwayat').set(dbRiwayat);
+        const trx = { waktu: new Date().toLocaleString('id-ID'), kasir: userLogin.nama, total: total, profit: totalProfit };
         
-        alert("Transaksi Berhasil Disimpan!");
-        keranjang = []; 
-        document.getElementById('bayar').value = '';
-        renderKeranjang();
+        dbRiwayat.unshift(trx);
+        dbCloud.ref('v19_barang').set(dbBarang);
+        dbCloud.ref('v19_riwayat').set(dbRiwayat).then(() => {
+            alert("Transaksi Sukses!");
+            keranjang = []; renderKeranjang();
+        });
+    }
+
+    function renderLaporan() {
+        const b = document.getElementById('bodyLaporan'); b.innerHTML = '';
+        dbRiwayat.forEach(r => {
+            b.innerHTML += `<tr><td>${r.waktu}</td><td>${r.kasir}</td><td>${r.total.toLocaleString()}</td><td>${r.profit.toLocaleString()}</td></tr>`;
+        });
     }
 </script>
 </body>
