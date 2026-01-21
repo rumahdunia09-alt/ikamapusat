@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IKAMAPUSAT - Ultimate POS v23</title>
+    <title>IKAMAPUSAT - Final System v25</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -33,6 +33,7 @@
         
         .hidden { display: none !important; }
         .btn-s { background: var(--s); } .btn-d { background: var(--d); } .btn-g { background: var(--g); }
+        .qty-inp { width: 65px !important; padding: 5px !important; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -42,7 +43,7 @@
         <h2>IKAMAPUSAT LOGIN</h2>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
-        <button onclick="doLogin()">MASUK KE SISTEM</button>
+        <button onclick="doLogin()">MASUK</button>
     </div>
 
     <div id="appContainer" class="hidden">
@@ -70,7 +71,7 @@
                         <h3>Penjualan</h3>
                         <input type="text" id="scanKasir" placeholder="Scan Barcode / Cari Nama..." onkeypress="handleKasirScan(event)" autofocus>
                         <table>
-                            <thead><tr><th>Barang</th><th style="width:70px">Qty</th><th>Subtotal</th></tr></thead>
+                            <thead><tr><th>Barang</th><th style="width:80px">Qty</th><th>Subtotal</th><th>#</th></tr></thead>
                             <tbody id="bodyKeranjang"></tbody>
                         </table>
                     </div>
@@ -79,37 +80,33 @@
                         <h1 id="totalBelanja" style="text-align:right; font-size:40px; margin:0; color:var(--p)">Rp 0</h1>
                         <input type="number" id="uangBayar" placeholder="Bayar (Rp)" oninput="hitungKembalian()" style="font-size:20px;">
                         <h3 id="textKembalian" style="text-align:right; color:var(--d)">Kembali: Rp 0</h3>
-                        <button class="btn-s" style="padding:15px; font-size:18px" onclick="prosesTransaksi()">PROSES BAYAR</button>
+                        <button class="btn-s" style="padding:15px; font-size:18px" onclick="prosesTransaksi()">SIMPAN TRANSAKSI</button>
                     </div>
                 </div>
             </div>
 
             <div id="page-master" class="section hidden adm-only">
                 <div class="card" style="border: 2px dashed var(--p); background: #f0f7ff;">
-                    <h3><i class="fas fa-file-excel"></i> Import Database Excel</h3>
-                    <p style="font-size: 12px; color: #666;">Format kolom di Excel: <b>Kode, Nama, Modal, Harga, Stok</b></p>
+                    <h3><i class="fas fa-file-excel"></i> Import Excel</h3>
                     <input type="file" id="inpExcel" accept=".xlsx, .xls">
-                    <button class="btn-s" onclick="importExcel()"><i class="fas fa-upload"></i> Unggah & Sinkronisasi</button>
+                    <button class="btn-s" onclick="importExcel()">Unggah Data</button>
                 </div>
-                
                 <div class="grid">
                     <div class="card">
-                        <h3>Tambah Barang Manual</h3>
+                        <h3>Tambah Manual</h3>
                         <input type="text" id="m_kode" placeholder="Barcode">
-                        <input type="text" id="m_nama" placeholder="Nama Barang">
+                        <input type="text" id="m_nama" placeholder="Nama">
                         <input type="number" id="m_modal" placeholder="Modal">
                         <input type="number" id="m_harga" placeholder="Jual">
                         <input type="number" id="m_stok" placeholder="Stok">
                         <button class="btn-s" onclick="tambahBarang()">SIMPAN</button>
                     </div>
                     <div class="card">
-                        <h3>Daftar Stok</h3>
-                        <div style="max-height: 400px; overflow-y: auto;">
-                            <table>
-                                <thead><tr><th>Nama</th><th>Harga</th><th>Stok</th><th>Aksi</th></tr></thead>
-                                <tbody id="bodyMaster"></tbody>
-                            </table>
-                        </div>
+                        <h3>Stok Barang</h3>
+                        <table id="tblMaster">
+                            <thead><tr><th>Nama</th><th>Harga</th><th>Stok</th><th>Aksi</th></tr></thead>
+                            <tbody id="bodyMaster"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -117,15 +114,18 @@
             <div id="page-karyawan" class="section hidden adm-only">
                 <div class="grid">
                     <div class="card">
-                        <h3>Tambah Kasir</h3>
-                        <input type="text" id="k_nama" placeholder="Nama Lengkap">
+                        <h3>Input Kasir Baru</h3>
+                        <input type="text" id="k_nama" placeholder="Nama Karyawan">
                         <input type="text" id="k_user" placeholder="Username">
                         <input type="text" id="k_pass" placeholder="Password">
-                        <button class="btn-s" onclick="tambahKaryawan()">SIMPAN KASIR</button>
+                        <button class="btn-s" onclick="tambahKaryawan()">SIMPAN KARYAWAN</button>
                     </div>
                     <div class="card">
-                        <h3>Daftar Kasir</h3>
-                        <tbody id="bodyKaryawan"></tbody>
+                        <h3>Daftar Kasir Aktif</h3>
+                        <table>
+                            <thead><tr><th>Nama</th><th>User</th><th>Aksi</th></tr></thead>
+                            <tbody id="bodyKaryawan"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -133,7 +133,12 @@
             <div id="page-laporan" class="section hidden">
                 <div class="card">
                     <h3>Laporan Pendapatan</h3>
-                    <input type="date" id="filterTgl" onchange="renderLaporan()">
+                    <div style="display:flex; gap:10px; margin-bottom:15px">
+                        <input type="date" id="filterTgl" onchange="renderLaporan()">
+                        <input type="time" id="filterJamMulai" value="00:00">
+                        <input type="time" id="filterJamSelesai" value="23:59">
+                        <button class="btn-g" onclick="renderLaporan()">Filter Waktu</button>
+                    </div>
                     <table>
                         <thead><tr><th>Waktu</th><th>Kasir</th><th>Total</th><th class="adm-only">Profit</th></tr></thead>
                         <tbody id="bodyLaporan"></tbody>
@@ -160,49 +165,15 @@
     let dbBarang = [], dbRiwayat = [], dbUsers = [], keranjang = [], userLogin = null;
     document.getElementById('filterTgl').valueAsDate = new Date();
 
-    // LISTENERS
-    dbCloud.ref('v23_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); });
-    dbCloud.ref('v23_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; renderLaporan(); });
-    dbCloud.ref('v23_users').on('value', snap => { 
-        dbUsers = snap.val() || [{nama:'Admin Utama', user:'admin', pass:'123', role:'admin'}];
+    // LISTENERS CLOUD
+    dbCloud.ref('v25_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); });
+    dbCloud.ref('v25_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; renderLaporan(); });
+    dbCloud.ref('v25_users').on('value', snap => { 
+        dbUsers = snap.val() || [{nama:'Admin', user:'admin', pass:'123', role:'admin'}];
         renderKaryawan();
     });
 
-    // FUNGSI IMPORT EXCEL (XLSX)
-    function importExcel() {
-        const file = document.getElementById('inpExcel').files[0];
-        if(!file) return alert("Pilih file Excel (.xlsx atau .xls)!");
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
-            const firstSheet = workbook.SheetNames[0];
-            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
-
-            // Mapping data Excel ke struktur Database
-            jsonData.forEach(row => {
-                // Mencari kolom berdasarkan nama atau urutan
-                const kode = row.Kode || row.KODE || Object.values(row)[0];
-                const nama = row.Nama || row.NAMA || Object.values(row)[1];
-                const modal = parseInt(row.Modal || row.MODAL || Object.values(row)[2]) || 0;
-                const harga = parseInt(row.Harga || row.HARGA || row.Jual || Object.values(row)[3]) || 0;
-                const stok = parseInt(row.Stok || row.STOK || Object.values(row)[4]) || 0;
-
-                if(kode && nama) {
-                    dbBarang.push({ kode: String(kode), nama: String(nama), modal: modal, harga: harga, stok: stok });
-                }
-            });
-
-            dbCloud.ref('v23_barang').set(dbBarang).then(() => {
-                alert("Import Selesai! Data Berhasil Masuk.");
-                document.getElementById('inpExcel').value = "";
-            });
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    // --- LOGIKA LOGIN & PAGES ---
+    // --- FUNGSI LOGIN ---
     function doLogin() {
         const u = document.getElementById('username').value, p = document.getElementById('password').value;
         const found = dbUsers.find(x => x.user === u && x.pass === p);
@@ -211,9 +182,9 @@
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('appContainer').classList.remove('hidden');
             document.getElementById('displayUser').innerText = userLogin.nama;
-            document.getElementById('roleBadge').innerText = (userLogin.role || 'KASIR').toUpperCase();
+            document.getElementById('roleBadge').innerText = userLogin.role.toUpperCase();
             if(userLogin.role !== 'admin') document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
-        } else alert("Username/Password Salah!");
+        } else alert("Gagal!");
     }
 
     function showPage(p, el) {
@@ -223,14 +194,67 @@
         el.classList.add('active');
     }
 
-    // --- LOGIKA KASIR ---
+    // --- MANAJEMEN KARYAWAN (FIXED) ---
+    function tambahKaryawan() {
+        const n=document.getElementById('k_nama'), u=document.getElementById('k_user'), p=document.getElementById('k_pass');
+        if(!n.value || !u.value || !p.value) return alert("Lengkapi!");
+        dbUsers.push({nama:n.value, user:u.value, pass:p.value, role:'kasir'});
+        dbCloud.ref('v25_users').set(dbUsers).then(() => { n.value=''; u.value=''; p.value=''; });
+    }
+
+    function renderKaryawan() {
+        const b = document.getElementById('bodyKaryawan'); if(!b) return;
+        b.innerHTML = '';
+        dbUsers.forEach((user, i) => {
+            b.innerHTML += `<tr><td>${user.nama}</td><td>${user.user}</td>
+            <td>${user.role === 'admin' ? '-' : `<button onclick="hapusUser(${i})" class="btn-d" style="padding:5px">Hapus</button>`}</td></tr>`;
+        });
+    }
+
+    function hapusUser(i) { if(confirm("Hapus?")) { dbUsers.splice(i,1); dbCloud.ref('v25_users').set(dbUsers); } }
+
+    // --- MANAJEMEN BARANG & EXCEL ---
+    function importExcel() {
+        const file = document.getElementById('inpExcel').files[0];
+        if(!file) return alert("Pilih file!");
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, {type:'array'});
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            rows.forEach(r => {
+                const k = r.Kode || Object.values(r)[0];
+                const n = r.Nama || Object.values(r)[1];
+                if(k && n) dbBarang.push({kode:String(k), nama:String(n), modal:parseInt(r.Modal)||0, harga:parseInt(r.Harga||r.Jual)||0, stok:parseInt(r.Stok)||0});
+            });
+            dbCloud.ref('v25_barang').set(dbBarang).then(() => alert("Berhasil!"));
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function tambahBarang() {
+        const k=m_kode, n=m_nama, mod=m_modal, h=m_harga, s=m_stok;
+        dbBarang.push({kode:k.value, nama:n.value, modal:parseInt(mod.value), harga:parseInt(h.value), stok:parseInt(s.value)});
+        dbCloud.ref('v25_barang').set(dbBarang).then(() => { [k,n,mod,h,s].forEach(i=>i.value=''); k.focus(); });
+    }
+
+    function renderMaster() {
+        const b = document.getElementById('bodyMaster'); b.innerHTML = '';
+        dbBarang.forEach((brg, i) => {
+            b.innerHTML += `<tr><td>${brg.nama}</td><td>${brg.harga.toLocaleString()}</td><td>${brg.stok}</td>
+            <td><button onclick="hapusBarang(${i})" class="btn-d" style="padding:5px">X</button></td></tr>`;
+        });
+    }
+    function hapusBarang(i) { if(confirm("Hapus?")) { dbBarang.splice(i,1); dbCloud.ref('v25_barang').set(dbBarang); } }
+
+    // --- KASIR & PEMBAYARAN ---
     function handleKasirScan(e) {
         if(e.key === 'Enter') {
             const val = document.getElementById('scanKasir').value;
             const b = dbBarang.find(x => x.kode === val || x.nama.toLowerCase().includes(val.toLowerCase()));
             if(b) {
                 const ada = keranjang.find(k => k.kode === b.kode);
-                if(ada) ada.qty++; else keranjang.push({...b, qty: 1});
+                if(ada) ada.qty++; else keranjang.push({...b, qty:1});
                 renderKeranjang();
             }
             document.getElementById('scanKasir').value = '';
@@ -240,17 +264,21 @@
     function renderKeranjang() {
         const b = document.getElementById('bodyKeranjang'); b.innerHTML = '';
         let total = 0;
-        keranjang.forEach(k => {
+        keranjang.forEach((k, i) => {
             let sub = k.qty * k.harga; total += sub;
-            b.innerHTML += `<tr><td>${k.nama}</td><td>${k.qty}</td><td>${sub.toLocaleString()}</td></tr>`;
+            b.innerHTML += `<tr><td>${k.nama}</td>
+            <td><input type="number" class="qty-inp" value="${k.qty}" onchange="updateQty(${i}, this.value)"></td>
+            <td>${sub.toLocaleString()}</td><td><button onclick="updateQty(${i},0)" style="color:red; background:none">X</button></td></tr>`;
         });
         document.getElementById('totalBelanja').innerText = "Rp " + total.toLocaleString();
     }
 
+    function updateQty(i, v) { if(v<=0) keranjang.splice(i,1); else keranjang[i].qty=parseInt(v); renderKeranjang(); }
+
     function hitungKembalian() {
         const t = parseInt(document.getElementById('totalBelanja').innerText.replace(/\D/g,'')) || 0;
         const b = parseInt(document.getElementById('uangBayar').value) || 0;
-        document.getElementById('textKembalian').innerText = "Kembali: Rp " + (b - t < 0 ? 0 : b - t).toLocaleString();
+        document.getElementById('textKembalian').innerText = "Kembali: Rp " + (b-t < 0 ? 0 : b-t).toLocaleString();
     }
 
     function prosesTransaksi() {
@@ -262,53 +290,32 @@
             const idx = dbBarang.findIndex(b => b.kode === item.kode);
             if(idx !== -1) dbBarang[idx].stok -= item.qty;
         });
+        const sekarang = new Date();
         dbRiwayat.unshift({
-            tgl: new Date().toISOString().split('T')[0],
-            waktu: new Date().toLocaleString('id-ID'),
+            tgl: sekarang.toISOString().split('T')[0],
+            jam: sekarang.getHours().toString().padStart(2,'0')+":"+sekarang.getMinutes().toString().padStart(2,'0'),
+            waktu: sekarang.toLocaleString('id-ID'),
             kasir: userLogin.nama,
             total: total,
             profit: profit
         });
-        dbCloud.ref('v23_barang').set(dbBarang);
-        dbCloud.ref('v23_riwayat').set(dbRiwayat).then(() => {
-            alert("Transaksi Sukses!"); keranjang = []; renderKeranjang();
+        dbCloud.ref('v25_barang').set(dbBarang);
+        dbCloud.ref('v25_riwayat').set(dbRiwayat).then(() => {
+            alert("Berhasil!"); keranjang = []; renderKeranjang();
             document.getElementById('uangBayar').value = '';
         });
     }
 
-    // --- MANAJEMEN DATA ---
-    function renderMaster() {
-        const b = document.getElementById('bodyMaster'); b.innerHTML = '';
-        dbBarang.forEach((brg, i) => {
-            b.innerHTML += `<tr><td>${brg.nama}</td><td>${brg.harga.toLocaleString()}</td><td>${brg.stok}</td><td><button onclick="hapusBarang(${i})" class="btn-d" style="padding:5px">X</button></td></tr>`;
-        });
-    }
-    function hapusBarang(i) { if(confirm("Hapus?")) { dbBarang.splice(i,1); dbCloud.ref('v23_barang').set(dbBarang); } }
-
-    function tambahBarang() {
-        const k=m_kode, n=m_nama, mod=m_modal, h=m_harga, s=m_stok;
-        dbBarang.push({kode:k.value, nama:n.value, modal:parseInt(mod.value), harga:parseInt(h.value), stok:parseInt(s.value)});
-        dbCloud.ref('v23_barang').set(dbBarang).then(() => {
-            [k,n,mod,h,s].forEach(i => i.value=''); k.focus();
-        });
-    }
-
+    // --- LAPORAN ---
     function renderLaporan() {
         const tgl = document.getElementById('filterTgl').value;
+        const mulai = document.getElementById('filterJamMulai').value;
+        const selesai = document.getElementById('filterJamSelesai').value;
         const b = document.getElementById('bodyLaporan'); b.innerHTML = '';
-        dbRiwayat.filter(r => r.tgl === tgl).forEach(r => {
-            b.innerHTML += `<tr><td>${r.waktu}</td><td>${r.kasir}</td><td>${r.total.toLocaleString()}</td><td class="adm-only">${r.profit.toLocaleString()}</td></tr>`;
+        dbRiwayat.filter(r => r.tgl === tgl && r.jam >= mulai && r.jam <= selesai).forEach(r => {
+            b.innerHTML += `<tr><td>${r.waktu}</td><td>${r.kasir}</td><td>${r.total.toLocaleString()}</td>
+            <td class="adm-only">${r.profit.toLocaleString()}</td></tr>`;
         });
-    }
-
-    function tambahKaryawan() {
-        const n=k_nama, u=k_user, p=k_pass;
-        dbUsers.push({nama:n.value, user:u.value, pass:p.value, role:'kasir'});
-        dbCloud.ref('v23_users').set(dbUsers).then(() => { n.value=''; u.value=''; p.value=''; });
-    }
-
-    function renderKaryawan() {
-        // Fungsi render daftar karyawan di tabel karyawan
     }
 </script>
 </body>
